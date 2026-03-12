@@ -1,0 +1,32 @@
+{
+  "name": "jamboree-frontend",
+  "version": "1.0.0",
+  "description": "ระบบงานชุมนุมลูกเสืออาชีวศึกษา - Frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.13.6",
+    "clsx": "^2.1.0",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^0.363.0",
+    "qrcode.react": "^3.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-query": "^3.39.3",
+    "react-router-dom": "^6.22.3",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.1.6",
+    "vite-plugin-pwa": "^0.19.8"
+  }
+}

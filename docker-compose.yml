@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/prisma/dev.db:/app/prisma/dev.db
+    environment:
+      - DATABASE_URL=file:./prisma/dev.db
+      - JWT_SECRET=change-this-in-production
+      - FRONTEND_URL=http://localhost:5173
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
