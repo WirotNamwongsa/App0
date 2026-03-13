@@ -11,15 +11,18 @@ import ScoutHome from './pages/scout/Home'
 import ScoutActivities from './pages/scout/Activities'
 import ScoutQR from './pages/scout/QRCode'
 import ScoutProfile from './pages/scout/Profile'
+import ScoutSchedule from './pages/scout/Schedule'
 
 // Leader
 import LeaderHome from './pages/leader/Home'
 import LeaderMember from './pages/leader/Member'
 import LeaderReport from './pages/leader/Report'
+import LeaderSchedule from './pages/leader/Schedule'
 
 // Staff
 import StaffScan from './pages/staff/Scan'
 import StaffScanned from './pages/staff/Scanned'
+import StaffSchedule from './pages/staff/Schedule'
 
 // Camp
 import CampDashboard from './pages/camp/Dashboard'
@@ -64,17 +67,20 @@ export default function App() {
 
       {/* Scout */}
       <Route path="/scout/home" element={<RequireAuth roles={['SCOUT']}><ScoutHome /></RequireAuth>} />
+      <Route path="/scout/schedule" element={<RequireAuth roles={['SCOUT']}><ScoutSchedule /></RequireAuth>} />
       <Route path="/scout/activities" element={<RequireAuth roles={['SCOUT']}><ScoutActivities /></RequireAuth>} />
       <Route path="/scout/qr" element={<RequireAuth roles={['SCOUT']}><ScoutQR /></RequireAuth>} />
       <Route path="/scout/profile" element={<RequireAuth roles={['SCOUT']}><ScoutProfile /></RequireAuth>} />
 
       {/* Leader */}
       <Route path="/leader/home" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderHome /></RequireAuth>} />
+      <Route path="/leader/schedule" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderSchedule /></RequireAuth>} />
       <Route path="/leader/member/:id" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderMember /></RequireAuth>} />
       <Route path="/leader/report" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderReport /></RequireAuth>} />
 
       {/* Staff */}
       <Route path="/staff/scan" element={<RequireAuth roles={['STAFF', 'ADMIN']}><StaffScan /></RequireAuth>} />
+      <Route path="/staff/schedule" element={<RequireAuth roles={['STAFF', 'ADMIN']}><StaffSchedule /></RequireAuth>} />
       <Route path="/staff/scanned" element={<RequireAuth roles={['STAFF', 'ADMIN']}><StaffScanned /></RequireAuth>} />
 
       {/* Camp */}

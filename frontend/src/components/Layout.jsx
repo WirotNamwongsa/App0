@@ -6,16 +6,19 @@ import ThemeToggle from './ThemeToggle'
 const navConfig = {
   SCOUT: [
     { to: '/scout/home', icon: Home, label: 'หน้าแรก' },
+    { to: '/scout/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
     { to: '/scout/activities', icon: Calendar, label: 'กิจกรรม' },
     { to: '/scout/qr', icon: QrCode, label: 'QR ฉัน' },
     { to: '/scout/profile', icon: User, label: 'โปรไฟล์' },
   ],
   TROOP_LEADER: [
     { to: '/leader/home', icon: Users, label: 'หมู่ของฉัน' },
+    { to: '/leader/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
   ],
   STAFF: [
     { to: '/staff/scan', icon: ScanLine, label: 'สแกน QR' },
+    { to: '/staff/schedule', icon: Calendar, label: 'ตาราง' },
     { to: '/staff/scanned', icon: ClipboardList, label: 'รายชื่อ' },
   ],
   CAMP_MANAGER: [

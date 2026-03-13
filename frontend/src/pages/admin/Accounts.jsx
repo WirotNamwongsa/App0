@@ -15,9 +15,7 @@ const ROLES = [
 const roleBadge = {
   ADMIN: 'bg-red-100 text-red-700',
   CAMP_MANAGER: 'bg-blue-100 text-blue-700',
-  TROOP_LEADER: 'bg-green-100 text-green-700',
   STAFF: 'bg-orange-100 text-orange-700',
-  SCOUT: 'bg-gray-100 text-gray-700',
 }
 
 export default function AdminAccounts() {
@@ -63,7 +61,7 @@ export default function AdminAccounts() {
 
   function openEdit(a) {
     setEditId(a.id)
-    setForm({ username: a.username, password: '', name: a.name, role: a.role, campId: a.campId || '', activityId: a.activityId || '', firstName: '', lastName: '', nickname: '', school: '', province: '', squadId: a.scoutAccount?.squadId || '' })
+    setForm({ username: a.username, password: '', name: a.name, role: a.role, campId: a.campId || '', activityId: a.activityId || '', firstName: '', lastName: '', nickname: '', school: '', province: '', squadId: '' })
     setShowForm(true)
   }
 
@@ -79,20 +77,40 @@ export default function AdminAccounts() {
     if (!editId && !form.password.trim()) e.password = 'กรุณากรอกรหัสผ่าน'
     if (!form.name.trim()) e.name = 'กรุณากรอกชื่อ-สกุล'
     if (!form.role) e.role = 'กรุณาเลือก Role'
-    if (['CAMP_MANAGER', 'TROOP_LEADER', 'SCOUT'].includes(form.role) && !form.campId) e.campId = 'กรุณาเลือกค่ายย่อย'
-    if (form.role === 'SCOUT' && !editId) {
-      if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
-      if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
-    }
+    if (form.role === 'CAMP_MANAGER' && !form.campId) e.campId = 'กรุณาเลือกค่ายย่อย'
     return e
+  }
+
+  function onRoleChange(nextRole) {
+    setForm(f => {
+      // กันค่า campId ค้างจาก role อื่น: Admin/Staff ไม่ควรผูกค่ายย่อย
+      const clearCamp = nextRole === 'ADMIN' || nextRole === 'STAFF'
+      return {
+        ...f,
+        role: nextRole,
+        campId: clearCamp ? '' : f.campId,
+        squadId: clearCamp ? '' : f.squadId,
+        // ถ้าไม่ใช่ STAFF ให้เคลียร์ activityId
+        activityId: nextRole === 'STAFF' ? f.activityId : '',
+      }
+    })
+    setErrors(er => ({ ...er, role: '', campId: '' }))
   }
 
   function submit() {
     const e = validate()
     if (Object.keys(e).length > 0) { setErrors(e); return }
     setErrors({})
-    if (editId) updateMutation.mutate({ id: editId, ...form })
-    else createMutation.mutate(form)
+    const payload = {
+      ...form,
+      // ส่งค่าว่างเป็น null ให้ backend ชัดเจน
+      campId: form.campId || null,
+      activityId: form.activityId || null,
+    }
+    if (form.role === 'ADMIN' || form.role === 'STAFF') payload.campId = null
+
+    if (editId) updateMutation.mutate({ id: editId, ...payload })
+    else createMutation.mutate(payload)
   }
 
   return (
@@ -176,12 +194,12 @@ export default function AdminAccounts() {
               </div>
               <div>
                 <select className={`input ${errors.role ? 'border-red-400 dark:border-red-500' : ''}`} value={form.role}
-                  onChange={e => { setForm(f => ({ ...f, role: e.target.value })); setErrors(er => ({ ...er, role: '' })) }}>
+                  onChange={e => onRoleChange(e.target.value)}>
                   {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 {errors.role && <p className="text-xs text-red-500 mt-1 ml-1">{errors.role}</p>}
               </div>
-              {['CAMP_MANAGER', 'TROOP_LEADER', 'SCOUT'].includes(form.role) && (
+              {form.role === 'CAMP_MANAGER' && (
                 <div>
                   <select className={`input ${errors.campId ? 'border-red-400 dark:border-red-500' : ''}`} value={form.campId}
                     onChange={e => { setForm(f => ({ ...f, campId: e.target.value, squadId: '' })); setErrors(er => ({ ...er, campId: '' })) }}>
@@ -189,36 +207,6 @@ export default function AdminAccounts() {
                     {camps.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   {errors.campId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.campId}</p>}
-                </div>
-              )}
-              {form.role === 'SCOUT' && (
-                <div className="space-y-2 p-3 rounded-xl bg-gray-50 dark:bg-scout-800 border border-gray-200 dark:border-scout-700">
-                  <p className="text-xs text-gray-500 font-medium">ข้อมูลลูกเสือ</p>
-                  {!editId && (
-                    <>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <input className={`input w-full ${errors.firstName ? 'border-red-400 dark:border-red-500' : ''}`} placeholder="ชื่อจริง *" value={form.firstName}
-                            onChange={e => { setForm(f => ({ ...f, firstName: e.target.value })); setErrors(er => ({ ...er, firstName: '' })) }} />
-                          {errors.firstName && <p className="text-xs text-red-500 mt-1 ml-1">{errors.firstName}</p>}
-                        </div>
-                        <div className="flex-1">
-                          <input className={`input w-full ${errors.lastName ? 'border-red-400 dark:border-red-500' : ''}`} placeholder="นามสกุล *" value={form.lastName}
-                            onChange={e => { setForm(f => ({ ...f, lastName: e.target.value })); setErrors(er => ({ ...er, lastName: '' })) }} />
-                          {errors.lastName && <p className="text-xs text-red-500 mt-1 ml-1">{errors.lastName}</p>}
-                        </div>
-                      </div>
-                      <input className="input" placeholder="ชื่อเล่น" value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} />
-                      <input className="input" placeholder="โรงเรียน/วิทยาลัย" value={form.school} onChange={e => setForm(f => ({ ...f, school: e.target.value }))} />
-                      <input className="input" placeholder="จังหวัด" value={form.province} onChange={e => setForm(f => ({ ...f, province: e.target.value }))} />
-                  <input className="input" placeholder="เบอร์โทรศัพท์" type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-                  <input className="input" placeholder="อีเมล" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                    </>
-                  )}
-                  <select className="input" value={form.squadId} onChange={e => setForm(f => ({ ...f, squadId: e.target.value }))}>
-                    <option value="">ไม่ระบุหมู่ (ย้ายทีหลังได้)</option>
-                    {filteredSquads.map(s => <option key={s.id} value={s.id}>{s.troopName} › {s.name}</option>)}
-                  </select>
                 </div>
               )}
               {form.role === 'STAFF' && (
