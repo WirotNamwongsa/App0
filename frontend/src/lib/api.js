@@ -1,11 +1,11 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-const BASE = import.meta.env.VITE_API_URL
-  || (window.location.hostname === 'localhost' ? '' : 'https://baby-tiger.onrender.com')
+const isProd = window.location.hostname !== 'localhost'
+const BASE = isProd ? 'https://baby-tiger.onrender.com' : ''
 
 const api = axios.create({ 
-  baseURL: `${BASE}/api`
+  baseURL: BASE + '/api'
 })
 
 api.interceptors.request.use(config => {
