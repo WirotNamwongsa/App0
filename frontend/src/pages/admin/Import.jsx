@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react'
-import { useMutation, useQueryClient } from 'react-query'
+import { useMutation, useQuery, useQueryClient } from 'react-query'
 import api from '../../lib/api'
 import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
-import { Upload, FileText, CheckCircle, AlertCircle, Download } from 'lucide-react'
+import { Upload, FileText, CheckCircle, AlertCircle, Download, Plus, X, UserPlus, Eye } from 'lucide-react'
 
 export default function AdminImport() {
   const qc = useQueryClient()
@@ -12,6 +12,17 @@ export default function AdminImport() {
   const [preview, setPreview] = useState([])
   const [errors, setErrors] = useState([])
   const [result, setResult] = useState(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [singleScout, setSingleScout] = useState({
+    firstName: '',
+    lastName: '',
+    nickname: '',
+    school: '',
+    province: '',
+    phone: '',
+    email: '',
+    scoutCode: ''
+  })
 
   const importMutation = useMutation(
     scouts => api.post('/admin/import-scouts', { scouts }),
@@ -21,6 +32,27 @@ export default function AdminImport() {
         setPreview([])
         qc.invalidateQueries('scouts')
         toast.success(`นำเข้าสำเร็จ ${data.count} คน`)
+      }
+    }
+  )
+
+  const addSingleMutation = useMutation(
+    scout => api.post('/scouts', scout),
+    {
+      onSuccess: () => {
+        setSingleScout({
+          firstName: '',
+          lastName: '',
+          nickname: '',
+          school: '',
+          province: '',
+          phone: '',
+          email: '',
+          scoutCode: ''
+        })
+        setShowAddForm(false)
+        qc.invalidateQueries('scouts')
+        toast.success('เพิ่มลูกเสือสำเร็จ')
       }
     }
   )
@@ -102,6 +134,139 @@ export default function AdminImport() {
             <Download size={15} /> Template JSON
           </button>
         </div>
+      </div>
+
+      {/* Add Single Scout */}
+      <div className="card mb-4 bg-gradient-to-r from-scout-50 to-scout-100 dark:from-scout-800/50 dark:to-scout-900/50 border-scout-200 dark:border-scout-700">
+        <div className="flex items-center justify-center">
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className={`w-full text-sm px-4 py-3 flex items-center justify-center gap-2 transition-all rounded-xl border-0 shadow-lg hover:shadow-xl transform hover:scale-105 duration-200 text-white font-medium ${
+              showAddForm ? 'bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800' : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
+            }`}
+          >
+            <UserPlus size={18} className={showAddForm ? 'animate-bounce' : ''} />
+            <span className="font-medium">เพิ่มลูกเสือ</span>
+            <Plus size={16} className={`transition-transform ${showAddForm ? 'rotate-45' : ''}`} />
+          </button>
+        </div>
+        
+        {showAddForm && (
+          <div className="mt-4 p-4 bg-white dark:bg-scout-900/50 rounded-xl border border-scout-200 dark:border-scout-700">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <input
+                    className="input pr-8"
+                    placeholder="ชื่อจริง *"
+                    value={singleScout.firstName}
+                    onChange={e => setSingleScout({...singleScout, firstName: e.target.value})}
+                  />
+                  {singleScout.firstName && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    className="input pr-8"
+                    placeholder="นามสกุล *"
+                    value={singleScout.lastName}
+                    onChange={e => setSingleScout({...singleScout, lastName: e.target.value})}
+                  />
+                  {singleScout.lastName && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  className="input"
+                  placeholder="ชื่อเล่น"
+                  value={singleScout.nickname}
+                  onChange={e => setSingleScout({...singleScout, nickname: e.target.value})}
+                />
+                <input
+                  className="input"
+                  placeholder="รหัสลูกเสือ"
+                  value={singleScout.scoutCode}
+                  onChange={e => setSingleScout({...singleScout, scoutCode: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  className="input"
+                  placeholder="โรงเรียน"
+                  value={singleScout.school}
+                  onChange={e => setSingleScout({...singleScout, school: e.target.value})}
+                />
+                <input
+                  className="input"
+                  placeholder="จังหวัด"
+                  value={singleScout.province}
+                  onChange={e => setSingleScout({...singleScout, province: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  className="input"
+                  placeholder="เบอร์โทร"
+                  value={singleScout.phone}
+                  onChange={e => setSingleScout({...singleScout, phone: e.target.value})}
+                />
+                <input
+                  className="input"
+                  placeholder="อีเมล"
+                  value={singleScout.email}
+                  onChange={e => setSingleScout({...singleScout, email: e.target.value})}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    if (!singleScout.firstName || !singleScout.lastName) {
+                      toast.error('กรุณากรอกชื่อและนามสกุล')
+                      return
+                    }
+                    addSingleMutation.mutate(singleScout)
+                  }}
+                  disabled={addSingleMutation.isLoading}
+                  className="btn-primary flex-1 text-sm py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 border-0"
+                >
+                  {addSingleMutation.isLoading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <UserPlus size={16} />
+                      <span>บันทึกข้อมูล</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setSingleScout({
+                      firstName: '',
+                      lastName: '',
+                      nickname: '',
+                      school: '',
+                      province: '',
+                      phone: '',
+                      email: '',
+                      scoutCode: ''
+                    })
+                  }}
+                  className="btn-secondary text-sm px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-scout-800"
+                >
+                  <X size={14} />
+                  <span>ล้าง</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Upload Zone */}

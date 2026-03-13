@@ -31,11 +31,11 @@ export default function AdminDashboard() {
           <p className="text-2xl font-display font-bold text-scout-900">{overview?.todayScans || 0}</p>
           <p className="text-xs text-gray-400">สแกนวันนี้</p>
         </div>
-        <div className="card text-center">
+        <button onClick={() => navigate('/admin/camps')} className="card text-center hover:opacity-80 transition-opacity">
           <Flag size={20} className="mx-auto text-blue-500 mb-2" />
           <p className="text-2xl font-display font-bold text-scout-900">{overview?.totalCamps || 0}</p>
           <p className="text-xs text-gray-400">ค่ายย่อย</p>
-        </div>
+        </button>
         <div className="card text-center">
           <Activity size={20} className="mx-auto text-green-500 mb-2" />
           <p className="text-2xl font-display font-bold text-scout-900">{overview?.activities?.length || 0}</p>
