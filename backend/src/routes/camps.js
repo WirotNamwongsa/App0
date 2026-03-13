@@ -9,6 +9,7 @@ router.use(authenticate)
 
 // GET /api/camps
 router.get('/', requireRole('ADMIN'), async (req, res) => {
+<<<<<<< HEAD
   const camps = await prisma.camp.findMany({
     include: {
       troops: {
@@ -22,6 +23,9 @@ router.get('/', requireRole('ADMIN'), async (req, res) => {
       }
     }
   })
+=======
+  const camps = await prisma.camp.findMany({ include: { _count: { select: { troops: true } } } })
+>>>>>>> 257707a (first commit)
   res.json(camps)
 })
 
@@ -89,6 +93,7 @@ router.delete('/:campId/troops/:troopId', requireRole('ADMIN', 'CAMP_MANAGER'), 
   res.json({ message: 'ลบกองสำเร็จ' })
 })
 
+<<<<<<< HEAD
 
 // DELETE /api/camps/:campId - ลบค่าย
 router.delete('/:campId', requireRole('ADMIN'), async (req, res) => {
@@ -125,3 +130,6 @@ router.get('/:campId/scouts', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, 
 export default router
 
 // เพิ่ม endpoints ที่ขาดอยู่ก่อน export default
+=======
+export default router
+>>>>>>> 257707a (first commit)

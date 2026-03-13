@@ -22,8 +22,16 @@ export default defineConfig({
       }
     })
   ],
+<<<<<<< HEAD
   server: { proxy: { '/api': 'http://localhost:4000' } },
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || '')
   }
 })
+=======
+  server: { proxy: { '/api': 'http://localhost:4000' },
+host: true
+}
+  
+})
+>>>>>>> 257707a (first commit)

@@ -10,7 +10,11 @@ router.use(authenticate, requireRole('ADMIN'))
 // GET /api/admin/accounts
 router.get('/accounts', async (req, res) => {
   const users = await prisma.user.findMany({
+<<<<<<< HEAD
     select: { id: true, username: true, role: true, name: true, campId: true, camp: true, leadingSquad: true, staffActivity: true, scoutAccount: { select: { id: true, squadId: true, firstName: true, lastName: true } } },
+=======
+    select: { id: true, username: true, role: true, name: true, campId: true, camp: true, leadingSquad: true, staffActivity: true },
+>>>>>>> 257707a (first commit)
     orderBy: { role: 'asc' }
   })
   res.json(users)
@@ -18,7 +22,11 @@ router.get('/accounts', async (req, res) => {
 
 // POST /api/admin/accounts
 router.post('/accounts', async (req, res) => {
+<<<<<<< HEAD
   const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email } = req.body
+=======
+  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province } = req.body
+>>>>>>> 257707a (first commit)
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
     data: { username, password: hashed, role, name, campId: campId || null }
@@ -39,9 +47,13 @@ router.post('/accounts', async (req, res) => {
         nickname: nickname || fName,
         school: school || '-',
         province: province || '-',
+<<<<<<< HEAD
         phone: phone || null,
         email: email || null,
         squadId: squadId || null,
+=======
+        squadId: null,
+>>>>>>> 257707a (first commit)
         userId: user.id
       }
     })
@@ -61,11 +73,16 @@ router.post('/accounts', async (req, res) => {
 
 // PATCH /api/admin/accounts/:id
 router.patch('/accounts/:id', async (req, res) => {
+<<<<<<< HEAD
   const { name, role, campId, activityId, password, squadId } = req.body
+=======
+  const { name, role, campId, activityId, password } = req.body
+>>>>>>> 257707a (first commit)
   const data = { name, role, campId: campId || null }
   if (password) data.password = await bcrypt.hash(password, 10)
   const user = await prisma.user.update({ where: { id: req.params.id }, data })
 
+<<<<<<< HEAD
   // ถ้า role เป็น SCOUT ให้อัปเดต squadId ใน Scout ด้วย
   if (role === 'SCOUT') {
     await prisma.scout.updateMany({
@@ -76,10 +93,19 @@ router.patch('/accounts/:id', async (req, res) => {
 
   // ถ้า role เป็น STAFF ให้ผูก activityId ผ่าน Activity.staffId
   if (role === 'STAFF') {
+=======
+  // ถ้า role เป็น STAFF ให้ผูก activityId ผ่าน Activity.staffId
+  if (role === 'STAFF') {
+    // เคลียร์ activity เดิมที่ผูกกับ user นี้ก่อน
+>>>>>>> 257707a (first commit)
     await prisma.activity.updateMany({
       where: { staffId: req.params.id },
       data: { staffId: null }
     })
+<<<<<<< HEAD
+=======
+    // ผูก activity ใหม่
+>>>>>>> 257707a (first commit)
     if (activityId) {
       await prisma.activity.update({
         where: { id: activityId },

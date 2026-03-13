@@ -15,25 +15,40 @@ const ROLES = [
 const roleBadge = {
   ADMIN: 'bg-red-100 text-red-700',
   CAMP_MANAGER: 'bg-blue-100 text-blue-700',
+<<<<<<< HEAD
   STAFF: 'bg-orange-100 text-orange-700',
+=======
+  TROOP_LEADER: 'bg-green-100 text-green-700',
+  STAFF: 'bg-orange-100 text-orange-700',
+  SCOUT: 'bg-gray-100 text-gray-700',
+>>>>>>> 257707a (first commit)
 }
 
 export default function AdminAccounts() {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
+<<<<<<< HEAD
   const [form, setForm] = useState({ username: '', password: '', name: '', role: 'CAMP_MANAGER', campId: '', activityId: '', firstName: '', lastName: '', nickname: '', school: '', province: '', squadId: '', phone: '', email: '' })
   const [filterRole, setFilterRole] = useState('ALL')
   const [search, setSearch] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
   const [errors, setErrors] = useState({})
+=======
+  const [form, setForm] = useState({ username: '', password: '', name: '', role: 'CAMP_MANAGER', campId: '', activityId: '', firstName: '', lastName: '', nickname: '', school: '', province: '' })
+  const [filterRole, setFilterRole] = useState('ALL')
+  const [search, setSearch] = useState('')
+>>>>>>> 257707a (first commit)
 
   const { data: accounts = [] } = useQuery('accounts', () => api.get('/admin/accounts'))
   const { data: camps = [] } = useQuery('camps', () => api.get('/camps'))
   const { data: activities = [] } = useQuery('activities', () => api.get('/activities'))
+<<<<<<< HEAD
   const { data: campsData = [] } = useQuery('camps-full', () => api.get('/camps'))
   const allSquads = campsData.flatMap(c => (c.troops || []).flatMap(t => (t.squads || []).map(s => ({ ...s, troopName: t.name, campName: c.name, campId: c.id }))))
   const filteredSquads = form.campId ? allSquads.filter(s => s.campId === form.campId) : allSquads
+=======
+>>>>>>> 257707a (first commit)
 
   const createMutation = useMutation(d => api.post('/admin/accounts', d), {
     onSuccess: () => { qc.invalidateQueries('accounts'); closeForm(); toast.success('สร้างบัญชีสำเร็จ') }
@@ -55,19 +70,28 @@ export default function AdminAccounts() {
 
   function openCreate() {
     setEditId(null)
+<<<<<<< HEAD
     setForm({ username: '', password: '', name: '', role: 'CAMP_MANAGER', campId: '', activityId: '', firstName: '', lastName: '', nickname: '', school: '', province: '', squadId: '', phone: '', email: '' })
+=======
+    setForm({ username: '', password: '', name: '', role: 'CAMP_MANAGER', campId: '', activityId: '', firstName: '', lastName: '', nickname: '', school: '', province: '' })
+>>>>>>> 257707a (first commit)
     setShowForm(true)
   }
 
   function openEdit(a) {
     setEditId(a.id)
+<<<<<<< HEAD
     setForm({ username: a.username, password: '', name: a.name, role: a.role, campId: a.campId || '', activityId: a.activityId || '', firstName: '', lastName: '', nickname: '', school: '', province: '', squadId: '' })
+=======
+    setForm({ username: a.username, password: '', name: a.name, role: a.role, campId: a.campId || '', activityId: a.activityId || '', firstName: '', lastName: '', nickname: '', school: '', province: '' })
+>>>>>>> 257707a (first commit)
     setShowForm(true)
   }
 
   function closeForm() {
     setShowForm(false)
     setEditId(null)
+<<<<<<< HEAD
     setErrors({})
   }
 
@@ -111,6 +135,13 @@ export default function AdminAccounts() {
 
     if (editId) updateMutation.mutate({ id: editId, ...payload })
     else createMutation.mutate(payload)
+=======
+  }
+
+  function submit() {
+    if (editId) updateMutation.mutate({ id: editId, ...form })
+    else createMutation.mutate(form)
+>>>>>>> 257707a (first commit)
   }
 
   return (
@@ -152,7 +183,11 @@ export default function AdminAccounts() {
               <p className="text-xs text-gray-400">@{a.username}{a.camp ? ` · ${a.camp.name}` : ''}</p>
             </div>
             <button onClick={() => openEdit(a)} className="p-2 text-gray-400 hover:text-scout-700"><Pencil size={16} /></button>
+<<<<<<< HEAD
             <button onClick={() => setConfirmDel({ label: a.name, id: a.id })} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
+=======
+            <button onClick={() => deleteMutation.mutate(a.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
+>>>>>>> 257707a (first commit)
           </div>
         ))}
       </div>
@@ -162,10 +197,17 @@ export default function AdminAccounts() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease' }}
           onClick={e => { if (e.target === e.currentTarget) closeForm() }}>
+<<<<<<< HEAD
           <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
             style={{ animation: 'slideUp 0.25s ease', maxHeight: '88vh' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-scout-700 flex-shrink-0">
+=======
+          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-sm shadow-2xl"
+            style={{ animation: 'slideUp 0.25s ease' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-scout-700">
+>>>>>>> 257707a (first commit)
               <h3 className="font-semibold text-scout-900 dark:text-white text-lg">
                 {editId ? 'แก้ไขบัญชี' : 'สร้างบัญชีใหม่'}
               </h3>
@@ -175,6 +217,7 @@ export default function AdminAccounts() {
             </div>
 
             {/* Form */}
+<<<<<<< HEAD
             <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#166534 transparent' }} className2='modal-scroll'>
               <div>
                 <input className={`input ${errors.username ? 'border-red-400 dark:border-red-500' : ''}`} placeholder="Username *" value={form.username}
@@ -207,6 +250,35 @@ export default function AdminAccounts() {
                     {camps.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   {errors.campId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.campId}</p>}
+=======
+            <div className="px-5 py-4 space-y-3">
+              <input className="input" placeholder="Username" value={form.username}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
+              <input className="input" type="password"
+                placeholder={editId ? 'รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน'}
+                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+              <input className="input" placeholder="ชื่อ-สกุล" value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+              {['CAMP_MANAGER', 'TROOP_LEADER', 'SCOUT'].includes(form.role) && (
+                <select className="input" value={form.campId} onChange={e => setForm(f => ({ ...f, campId: e.target.value }))}>
+                  <option value="">เลือกค่ายย่อย</option>
+                  {camps.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
+              {form.role === 'SCOUT' && !editId && (
+                <div className="space-y-2 p-3 rounded-xl bg-gray-50 dark:bg-scout-800 border border-gray-200 dark:border-scout-700">
+                  <p className="text-xs text-gray-500 font-medium">ข้อมูลลูกเสือ</p>
+                  <div className="flex gap-2">
+                    <input className="input flex-1" placeholder="ชื่อจริง" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} />
+                    <input className="input flex-1" placeholder="นามสกุล" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
+                  </div>
+                  <input className="input" placeholder="ชื่อเล่น" value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} />
+                  <input className="input" placeholder="โรงเรียน/วิทยาลัย" value={form.school} onChange={e => setForm(f => ({ ...f, school: e.target.value }))} />
+                  <input className="input" placeholder="จังหวัด" value={form.province} onChange={e => setForm(f => ({ ...f, province: e.target.value }))} />
+>>>>>>> 257707a (first commit)
                 </div>
               )}
               {form.role === 'STAFF' && (
@@ -218,13 +290,18 @@ export default function AdminAccounts() {
             </div>
 
             {/* Footer */}
+<<<<<<< HEAD
             <div className="flex gap-2 px-5 pb-5 flex-shrink-0">
+=======
+            <div className="flex gap-2 px-5 pb-5">
+>>>>>>> 257707a (first commit)
               <button onClick={submit} className="btn-primary flex-1">บันทึก</button>
               <button onClick={closeForm} className="btn-secondary flex-1">ยกเลิก</button>
             </div>
           </div>
         </div>
       )}
+<<<<<<< HEAD
       {confirmDel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.15s ease' }}
@@ -255,6 +332,8 @@ export default function AdminAccounts() {
         </div>
       )}
 
+=======
+>>>>>>> 257707a (first commit)
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(40px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }

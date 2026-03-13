@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+import 'dotenv/config'
+>>>>>>> 257707a (first commit)
 import 'express-async-errors'
 import express from 'express'
 import cors from 'cors'
@@ -15,6 +19,7 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 app.use(cors({
+<<<<<<< HEAD
   origin: (origin, callback) => {
     const allowed = [
       'http://localhost:5173',
@@ -28,6 +33,9 @@ app.use(cors({
       callback(null, true) // allow all for now
     }
   },
+=======
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+>>>>>>> 257707a (first commit)
   credentials: true
 }))
 app.use(express.json())
@@ -48,4 +56,8 @@ app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`🚀 Jamboree API running on http://localhost:${PORT}`)
+<<<<<<< HEAD
 })
+=======
+})
+>>>>>>> 257707a (first commit)

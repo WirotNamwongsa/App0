@@ -6,19 +6,28 @@ import ThemeToggle from './ThemeToggle'
 const navConfig = {
   SCOUT: [
     { to: '/scout/home', icon: Home, label: 'หน้าแรก' },
+<<<<<<< HEAD
     { to: '/scout/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
+=======
+>>>>>>> 257707a (first commit)
     { to: '/scout/activities', icon: Calendar, label: 'กิจกรรม' },
     { to: '/scout/qr', icon: QrCode, label: 'QR ฉัน' },
     { to: '/scout/profile', icon: User, label: 'โปรไฟล์' },
   ],
   TROOP_LEADER: [
     { to: '/leader/home', icon: Users, label: 'หมู่ของฉัน' },
+<<<<<<< HEAD
     { to: '/leader/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
+=======
+>>>>>>> 257707a (first commit)
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
   ],
   STAFF: [
     { to: '/staff/scan', icon: ScanLine, label: 'สแกน QR' },
+<<<<<<< HEAD
     { to: '/staff/schedule', icon: Calendar, label: 'ตาราง' },
+=======
+>>>>>>> 257707a (first commit)
     { to: '/staff/scanned', icon: ClipboardList, label: 'รายชื่อ' },
   ],
   CAMP_MANAGER: [
@@ -30,9 +39,15 @@ const navConfig = {
   ADMIN: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'ภาพรวม' },
     { to: '/admin/activities', icon: MapPin, label: 'กิจกรรม' },
+<<<<<<< HEAD
     { to: '/admin/accounts', icon: Users, label: 'บัญชี' },
     { to: '/admin/camps', icon: FileText, label: 'ค่าย' },
     { to: '/admin/audit', icon: ClipboardList, label: 'Audit' },
+=======
+    { to: '/admin/accounts', icon: Users, label: 'จัดการบัญชี' },
+    { to: '/admin/import', icon: FileText, label: 'Import ลูกเสือ' },
+    { to: '/admin/audit', icon: ClipboardList, label: 'Audit Log' },
+>>>>>>> 257707a (first commit)
   ],
 }
 
@@ -98,7 +113,11 @@ function Sidebar({ items, user, logout }) {
           <ThemeToggle />
         </div>
         <button onClick={logout}
+<<<<<<< HEAD
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+=======
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-red-500 dark:text-red-300 transition-all">
+>>>>>>> 257707a (first commit)
           <LogOut size={18} />
           ออกจากระบบ
         </button>
@@ -113,6 +132,7 @@ function BottomNavMobile({ items, logout }) {
       {items.map(({ to, icon: Icon, label }) => (
         <NavLink key={to} to={to}
           className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+<<<<<<< HEAD
           <Icon size={18} />
           <span className="truncate w-full text-center">{label}</span>
         </NavLink>
@@ -123,6 +143,12 @@ function BottomNavMobile({ items, logout }) {
         </div>
         <span style={{fontSize:10}}>ออก</span>
       </button>
+=======
+          <Icon size={22} />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+>>>>>>> 257707a (first commit)
     </nav>
   )
 }
