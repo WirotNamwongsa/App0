@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { campApi } from '../../services/api';
-import { BottomNav, PageHeader, Card, ProgressBar, Spinner } from '../../components/common/UI';
+import { PageHeader, Card, ProgressBar, Spinner } from '../../components/common/UI.jsx';
 
 const NAV = [
-  { key: 'dashboard', icon: '📊', label: 'ภาพรวม' },
-  { key: 'structure', icon: '🏕️', label: 'โครงสร้าง' },
-  { key: 'schedule', icon: '📅', label: 'ตาราง' },
-  { key: 'report', icon: '📋', label: 'รายงาน' },
+  { key: 'dashboard', icon: '', label: '' },
+  { key: 'structure', icon: '', label: '' },
+  { key: 'schedule', icon: '', label: '' },
+  { key: 'report', icon: '', label: '' },
 ];
 
 export default function CampReport() {
@@ -29,7 +29,7 @@ export default function CampReport() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #0f2440, #0a1628)', paddingBottom: 80 }}>
-      <PageHeader title="รายงานค่าย" subtitle={`ทั้งหมด ${data?.totalScouts} คน`} />
+      <PageHeader title="" subtitle={` ${data?.totalScouts} `} />
 
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {data?.report?.map(r => (
@@ -42,8 +42,6 @@ export default function CampReport() {
           </Card>
         ))}
       </div>
-
-      <BottomNav items={NAV} active="report" onSelect={handleNav} />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from 'react-query'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -135,7 +134,6 @@ export default function AdminAudit() {
         </div>
       )}
 
-      <BottomNav />
     </div>
   )
 }

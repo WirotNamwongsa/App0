@@ -3,17 +3,20 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
-import { Plus, ChevronRight, Trash2 } from 'lucide-react'
+import { Plus, ChevronRight, Trash2, LogOut } from 'lucide-react'
 
 export default function CampStructure() {
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const qc = useQueryClient()
   const [expanded, setExpanded] = useState({})
   const [showAddSquad, setShowAddSquad] = useState(null)
   const [squadForm, setSquadForm] = useState({ name: '', number: '' })
+
+  const handleLogout = () => {
+    logout()
+  }
 
   const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
 
@@ -65,7 +68,18 @@ export default function CampStructure() {
           )}
         </div>
       ))}
-      <BottomNav />
+      
+      <div className="md:hidden mb-4">
+        <button 
+          onClick={handleLogout}
+          className="bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+          title="ออกจากระบบ"
+        >
+          <LogOut size={18} />
+          <span className="text-sm font-medium">ออก</span>
+        </button>
+      </div>
+      
     </div>
   )
 }

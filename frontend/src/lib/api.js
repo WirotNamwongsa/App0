@@ -1,23 +1,19 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
-
-<<<<<<< HEAD
+ 
 const isProd = window.location.hostname !== 'localhost'
 const BASE = isProd ? 'https://baby-tiger.onrender.com' : ''
-
+ 
 const api = axios.create({ 
   baseURL: BASE + '/api'
 })
-=======
-const api = axios.create({ baseURL: '/api' })
->>>>>>> 257707a (first commit)
-
+ 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
-
+ 
 api.interceptors.response.use(
   r => r.data,
   err => {
@@ -31,8 +27,5 @@ api.interceptors.response.use(
   }
 )
 
-<<<<<<< HEAD
+
 export default api
-=======
-export default api
->>>>>>> 257707a (first commit)

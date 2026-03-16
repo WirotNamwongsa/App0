@@ -36,7 +36,7 @@ export default function BottomNav() {
   const items = navConfig[user?.role] || []
 
   return (
-    <nav className="bottom-nav shadow-lg">
+    <nav className="bottom-nav shadow-lg md:hidden">
       {items.map(({ to, icon: Icon, label }) => (
         <NavLink key={to} to={to} className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <Icon size={22} />

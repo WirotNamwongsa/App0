@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
+import { Trash2 } from 'lucide-react'
 
 const SLOTS = [{ value: 'MORNING', label: 'เช้า' }, { value: 'AFTERNOON', label: 'บ่าย' }, { value: 'EVENING', label: 'เย็น' }]
 
@@ -23,6 +23,11 @@ export default function CampSchedule() {
   const addMutation = useMutation(
     data => api.post('/schedules', { ...data, campId: user.campId }),
     { onSuccess: () => { qc.invalidateQueries(['schedules']); setShowForm(false); toast.success('บันทึกตารางสำเร็จ') } }
+  )
+
+  const deleteMutation = useMutation(
+    id => api.delete(`/schedules/${id}`),
+    { onSuccess: () => { qc.invalidateQueries(['schedules']); toast.success('ลบตารางสำเร็จ') } }
   )
 
   const allSquads = camp?.troops?.flatMap(t => t.squads?.map(sq => ({ ...sq, troopNumber: t.number }))) || []
@@ -94,6 +99,12 @@ export default function CampSchedule() {
                   <p className="text-sm font-medium text-scout-900">{s.activity?.name}</p>
                   {s.squad && <p className="text-xs text-gray-400">กอง {s.squad?.troop?.number} หมู่ {s.squad?.number}</p>}
                 </div>
+                <button 
+                  onClick={() => deleteMutation.mutate(s.id)} 
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
           </div>
@@ -103,7 +114,6 @@ export default function CampSchedule() {
       {schedules.length === 0 && !showForm && (
         <div className="card text-center py-8 text-gray-400">ยังไม่มีตารางกิจกรรม</div>
       )}
-      <BottomNav />
     </div>
   )
 }

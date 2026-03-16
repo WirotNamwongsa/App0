@@ -1,7 +1,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-const BASE = process.env.REACT_APP_API_URL || '/api';
+const BASE = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({ baseURL: BASE });
 
@@ -58,6 +58,10 @@ export const campApi = {
   getSchedule: () => api.get('/camp/schedule'),
   createSchedule: (data) => api.post('/camp/schedule', data),
   getReport: () => api.get('/camp/report'),
+  getActivityGroups: () => api.get('/activity-groups'),
+  createActivityGroup: (data) => api.post('/activity-groups', data),
+  updateActivityGroup: (id, data) => api.put(`/activity-groups/${id}`, data),
+  deleteActivityGroup: (id) => api.delete(`/activity-groups/${id}`),
 };
 
 // Staff
@@ -66,6 +70,9 @@ export const staffApi = {
   scan: (data) => api.post('/staff/scan', data),
   batchSync: (scans) => api.post('/staff/scan/batch', { scans }),
   getScanned: (scheduleId) => api.get(`/staff/scanned/${scheduleId}`),
+  getActivityGroups: () => api.get('/activity-groups'),
+  assignSquadToGroup: (groupId, squadId) => api.post(`/activity-groups/${groupId}/assign-squad`, { squadId }),
+  removeSquadFromGroup: (groupId, squadId) => api.delete(`/activity-groups/${groupId}/remove-squad/${squadId}`),
 };
 
 // Admin

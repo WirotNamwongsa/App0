@@ -2,10 +2,9 @@ import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import StatCard from '../../components/StatCard'
 import PageHeader from '../../components/PageHeader'
-import { LogOut } from 'lucide-react'
+import BottomNav from '../../components/BottomNav'
 
 export default function ScoutHome() {
   const { user, logout } = useAuthStore()
@@ -28,14 +27,6 @@ export default function ScoutHome() {
               หมู่ {scout.squad.number} · กอง {scout.squad.troop?.number} · {scout.squad.troop?.camp?.name}
             </p>
           )}
-        </div>
-        <div className="md:hidden">
-          <button
-            onClick={logout}
-            className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all"
-          >
-            <LogOut size={20} />
-          </button>
         </div>
       </div>
 

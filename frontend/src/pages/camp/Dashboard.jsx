@@ -2,8 +2,8 @@ import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 
 export default function CampDashboard() {
   const { user } = useAuthStore()
@@ -14,7 +14,7 @@ export default function CampDashboard() {
 
   return (
     <div className="page">
-      <PageHeader title={data?.camp?.name || 'ค่ายย่อย'} showLogout />
+      <PageHeader title={data?.camp?.name || 'ค่ายย่อย'} />
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-scout-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : data && (

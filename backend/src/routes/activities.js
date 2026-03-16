@@ -71,8 +71,30 @@ router.patch('/:id', requireRole('ADMIN'), async (req, res) => {
 
 // DELETE /api/activities/:id
 router.delete('/:id', requireRole('ADMIN'), async (req, res) => {
-  await prisma.activity.delete({ where: { id: req.params.id } })
-  res.json({ message: 'ลบกิจกรรมสำเร็จ' })
+  const activityId = req.params.id
+  
+  // ตรวจสอบว่ามีข้อมูลที่เกี่ยวข้องหรือไม่
+  const schedules = await prisma.schedule.count({ where: { activityId } })
+  const attendances = await prisma.attendance.count({ where: { activityId } })
+  
+  // ลบข้อมูลที่เกี่ยวข้องก่อน
+  if (schedules > 0) {
+    await prisma.schedule.deleteMany({ where: { activityId } })
+  }
+  if (attendances > 0) {
+    await prisma.attendance.deleteMany({ where: { activityId } })
+  }
+  
+  // ลบ Activity
+  await prisma.activity.delete({ where: { id: activityId } })
+  
+  res.json({ 
+    message: 'ลบกิจกรรมสำเร็จ',
+    deleted: {
+      schedules,
+      attendances
+    }
+  })
 })
 
 export default router

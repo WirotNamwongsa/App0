@@ -3,9 +3,9 @@ import { useMutation, useQuery } from 'react-query'
 import { Html5Qrcode } from 'html5-qrcode'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import { Wifi, WifiOff, Users, Camera, CameraOff, LogOut } from 'lucide-react'
-import ThemeToggle from '../../components/ThemeToggle'
+import BottomNav from '../../components/BottomNav'
+import AdminEmptyState from '../../components/AdminEmptyState'
 import toast from 'react-hot-toast'
 
 const SCAN_QUEUE_KEY = 'scan_queue'
@@ -21,16 +21,19 @@ export default function StaffScan() {
   const scannerRef = useRef(null)
   const processingRef = useRef(false)
 
+  // ดึงข้อมูลกิจกรรมที่ Staff คนนี้รับผิดชอบ
   const { data: activity } = useQuery('my-activity', async () => {
     const me = await api.get('/auth/me')
-    return me.staffActivity
+    return me.staffActivity || null
   }, { enabled: user?.role === 'STAFF' || user?.role === 'ADMIN' })
 
+  // ดึงรายชื่อคนที่สแกนแล้ว
   const { data: scanned = [] } = useQuery(['scanned', activity?.id], () =>
     activity?.id ? api.get(`/attendance?activityId=${activity.id}`) : [],
     { enabled: !!activity?.id, refetchInterval: 10000 }
   )
 
+  // ดึงสถิติ
   const { data: stats } = useQuery(['scan-stats', activity?.id], () =>
     activity?.id ? api.get(`/attendance/stats/${activity.id}`) : null,
     { enabled: !!activity?.id, refetchInterval: 10000 }
@@ -41,15 +44,16 @@ export default function StaffScan() {
     const onOffline = () => setIsOnline(false)
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
-    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline) }
+    return () => { 
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline) 
+    }
   }, [])
 
-  // หยุดกล้องเมื่อออกจาก tab scan
   useEffect(() => {
     if (tab !== 'scan' && cameraOn) stopCamera()
   }, [tab])
 
-  // cleanup เมื่อ unmount
   useEffect(() => {
     return () => { stopCamera() }
   }, [])
@@ -69,11 +73,13 @@ export default function StaffScan() {
 
   async function syncQueue() {
     const q = JSON.parse(localStorage.getItem(SCAN_QUEUE_KEY) || '[]')
+    if (q.length === 0) return
     for (const item of q) {
       try { await api.post('/attendance/scan', item) } catch {}
     }
     localStorage.setItem(SCAN_QUEUE_KEY, '[]')
     setQueue([])
+    toast.success('ซิงค์ข้อมูลย้อนหลังสำเร็จ')
   }
 
   const handleScan = useCallback(async (scoutCode) => {
@@ -129,161 +135,181 @@ export default function StaffScan() {
 
   return (
     <div className="min-h-screen bg-gray-200 dark:bg-scout-950 pb-20">
-
-      {/* Header */}
-      <div className="px-4 pt-10 pb-3 bg-gradient-to-b from-gray-300 dark:from-scout-900 to-transparent">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-scout-600 dark:text-scout-400 text-xs">กิจกรรมของฉัน</p>
-            <h1 className="text-scout-900 dark:text-white font-display font-bold text-lg leading-tight">
-              {activity?.name || 'รอการยืนยัน'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${isOnline ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-              {isOnline ? <Wifi size={11} /> : <WifiOff size={11} />}
-              {isOnline ? 'ออนไลน์' : `ออฟไลน์ (${queue.length})`}
+      {!activity ? (
+        user?.role === 'ADMIN' ? <AdminEmptyState /> : (
+          <div className="flex items-center justify-center min-h-screen px-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-scout-900 dark:text-white mb-2">
+                No Activity Assigned
+              </p>
+              <p className="text-scout-600 dark:text-scout-400">
+                Please contact your administrator for assignment.
+              </p>
             </div>
-            <ThemeToggle />
-            <button onClick={logout}
-              className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 dark:bg-red-900/50 dark:hover:bg-red-900/70 dark:text-red-300 transition-all">
-              <LogOut size={16} />
-            </button>
           </div>
-        </div>
-
-        {/* Stats */}
-        <div className="flex gap-2">
-          <div className="flex-1 bg-gray-50 dark:bg-scout-900/80 rounded-xl p-3 text-center border border-gray-400 dark:border-scout-800">
-            <p className="text-xl font-bold text-white">{scanned.length}</p>
-            <p className="text-xs text-gray-500 dark:text-scout-400">สแกนแล้ว</p>
-          </div>
-          <div className="flex-1 bg-gray-50 dark:bg-scout-900/80 rounded-xl p-3 text-center border border-gray-400 dark:border-scout-800">
-            <p className="text-xl font-bold text-scout-300">{stats?.scheduled || 0}</p>
-            <p className="text-xs text-gray-500 dark:text-scout-400">ตามตาราง</p>
-          </div>
-          <div className="flex-1 bg-gray-50 dark:bg-scout-900/80 rounded-xl p-3 text-center border border-gray-400 dark:border-scout-800">
-            <p className="text-xl font-bold text-orange-400">{scanned.filter(a => a.outOfSchedule).length}</p>
-            <p className="text-xs text-gray-500 dark:text-scout-400">นอกตาราง</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex mx-4 mt-3 mb-3 bg-gray-300 dark:bg-scout-900 rounded-xl p-1">
-        {['scan', 'list'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab === t ? 'bg-white dark:bg-scout-700 text-scout-900 dark:text-white shadow' : 'text-scout-400'}`}>
-            {t === 'scan' ? '📷 สแกน' : '📋 รายชื่อ'}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'scan' && (
-        <div className="px-4 space-y-3">
-
-          {/* กล้อง */}
-          <div className="relative bg-black rounded-3xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
-            {/* placeholder เมื่อกล้องปิด */}
-            {!cameraOn && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-300 dark:bg-scout-900">
-                <CameraOff size={48} className="text-scout-600" />
-                <p className="text-gray-500 dark:text-scout-400 text-sm">กล้องปิดอยู่</p>
-                {cameraError && <p className="text-red-400 text-xs text-center px-6">{cameraError}</p>}
+        )
+      ) : (
+        /* หน้าจอหลักเมื่อพบกิจกรรม */
+        <>
+          {/* Header */}
+          <div className="px-4 pt-10 pb-3 bg-gradient-to-b from-gray-300 dark:from-scout-900 to-transparent">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1 mr-4">
+                <p className="text-scout-600 dark:text-scout-400 text-xs font-bold uppercase tracking-wider">Staff Dashboard</p>
+                <h1 className="text-scout-900 dark:text-white font-bold text-xl leading-tight truncate">
+                  {activity.name}
+                </h1>
               </div>
-            )}
-
-            {/* QR Reader */}
-            <div id="qr-reader" className="w-full h-full" />
-
-            {/* กรอบเล็ง */}
-            {cameraOn && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="relative w-48 h-48">
-                  {/* มุมกรอบ */}
-                  <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-green-400 rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-green-400 rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-green-400 rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-green-400 rounded-br-lg" />
-                  {/* เส้นสแกน */}
-                  <div className="absolute left-2 right-2 h-0.5 bg-green-400/80 scan-line" />
+              <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${isOnline ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                  {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+                  {isOnline ? 'ONLINE' : `OFFLINE (${queue.length})`}
                 </div>
+                <button onClick={logout}
+                  className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all active:scale-90">
+                  <LogOut size={18} />
+                </button>
               </div>
-            )}
+            </div>
 
-            {/* Result overlay */}
-            {result && (
-              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                <div className={`rounded-2xl p-5 text-center mx-6 border-2 ${
-                  result.status === 'success' ? 'bg-green-900/80 border-green-500' :
-                  result.status === 'duplicate' ? 'bg-yellow-900/80 border-yellow-500' :
-                  'bg-orange-900/80 border-orange-500'
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white dark:bg-scout-900/80 rounded-2xl p-3 text-center border border-gray-300 dark:border-scout-800 shadow-sm">
+                <p className="text-2xl font-black text-scout-600 dark:text-white">{scanned.length}</p>
+                <p className="text-[10px] font-bold text-gray-500 dark:text-scout-400">สแกนแล้ว</p>
+              </div>
+              <div className="bg-white dark:bg-scout-900/80 rounded-2xl p-3 text-center border border-gray-300 dark:border-scout-800 shadow-sm">
+                <p className="text-2xl font-black text-scout-400">{stats?.scheduled || 0}</p>
+                <p className="text-[10px] font-bold text-gray-500 dark:text-scout-400">ตามตาราง</p>
+              </div>
+              <div className="bg-white dark:bg-scout-900/80 rounded-2xl p-3 text-center border border-gray-300 dark:border-scout-800 shadow-sm">
+                <p className="text-2xl font-black text-orange-500">{scanned.filter(a => a.outOfSchedule).length}</p>
+                <p className="text-[10px] font-bold text-gray-500 dark:text-scout-400">นอกเวลา</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Selector */}
+          <div className="flex mx-4 mt-2 mb-4 bg-gray-300 dark:bg-scout-900 rounded-2xl p-1.5">
+            {['scan', 'list'].map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${tab === t ? 'bg-white dark:bg-scout-700 text-scout-900 dark:text-white shadow-md' : 'text-gray-500 dark:text-scout-400'}`}>
+                {t === 'scan' ? '📷 SCAN QR' : '📋 LIST'}
+              </button>
+            ))}
+          </div>
+
+          {/* Scan Tab Content */}
+          {tab === 'scan' && (
+            <div className="px-4 space-y-4">
+              <div className="relative bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white dark:border-scout-800" style={{ aspectRatio: '1/1' }}>
+                {!cameraOn && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-100 dark:bg-scout-900">
+                    <div className="w-20 h-20 rounded-full bg-scout-500/10 flex items-center justify-center">
+                      <CameraOff size={40} className="text-scout-600" />
+                    </div>
+                    <p className="text-gray-500 font-bold">กล้องปิดอยู่</p>
+                    {cameraError && <p className="text-red-500 text-xs text-center px-10">{cameraError}</p>}
+                  </div>
+                )}
+
+                <div id="qr-reader" className="w-full h-full" />
+
+                {cameraOn && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="relative w-64 h-64">
+                      <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-green-400 rounded-tl-3xl" />
+                      <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-green-400 rounded-tr-3xl" />
+                      <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-green-400 rounded-bl-3xl" />
+                      <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-green-400 rounded-br-3xl" />
+                      <div className="absolute left-4 right-4 h-1 bg-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.8)] scan-line" />
+                    </div>
+                  </div>
+                )}
+
+                {result && (
+                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-6 backdrop-blur-sm">
+                    <div className={`w-full rounded-3xl p-6 text-center border-b-8 ${
+                      result.status === 'success' ? 'bg-green-950/90 border-green-500' :
+                      result.status === 'duplicate' ? 'bg-yellow-950/90 border-yellow-500' :
+                      'bg-orange-950/90 border-orange-500'
+                    }`}>
+                      <p className="text-5xl mb-4">
+                        {result.status === 'success' ? '✅' : result.status === 'duplicate' ? '⚠️' : '🔶'}
+                      </p>
+                      <h3 className="text-white font-black text-xl mb-1">
+                        {result.status === 'success' ? 'บันทึกสำเร็จ' : result.status === 'duplicate' ? 'เคยสแกนแล้ว' : 'นอกตาราง'}
+                      </h3>
+                      <p className="text-green-400 font-bold text-lg leading-tight">
+                        {result.scout?.firstName} {result.scout?.lastName}
+                      </p>
+                      <p className="text-white/60 text-sm mt-2 font-medium">
+                        หมู่ {result.scout?.squad?.number || '-'} · {result.scout?.scoutCode}
+                      </p>
+                      {result.status === 'out_of_schedule' && (
+                        <button onClick={() => scanMutation.mutate({ scoutCode: result.scout?.scoutCode, forceRecord: true })}
+                          className="mt-4 w-full bg-orange-500 hover:bg-orange-600 rounded-xl py-3 text-sm font-black text-white transition-all shadow-lg">
+                          ยืนยันบันทึกพิเศษ
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button onClick={toggleCamera}
+                className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-lg shadow-xl transition-all active:scale-95 ${
+                  cameraOn
+                    ? 'bg-red-500/20 border-2 border-red-500 text-red-500'
+                    : 'bg-scout-600 text-white hover:bg-scout-700'
                 }`}>
-                  <p className="text-4xl mb-2">
-                    {result.status === 'success' ? '✅' : result.status === 'duplicate' ? '⚠️' : '🔶'}
-                  </p>
-                  <p className="text-white font-bold text-base">
-                    {result.status === 'success' ? 'บันทึกสำเร็จ' : result.status === 'duplicate' ? 'สแกนซ้ำแล้ว' : 'นอกตาราง'}
-                  </p>
-                  <p className="text-white/80 text-sm mt-1">
-                    {result.scout?.firstName} {result.scout?.lastName}
-                  </p>
-                  {result.scout?.squad && (
-                    <p className="text-white/50 text-xs mt-0.5">หมู่ {result.scout.squad.number}</p>
-                  )}
-                  {result.status === 'out_of_schedule' && (
-                    <button onClick={() => scanMutation.mutate({ scoutCode: result.scout?.scoutCode, forceRecord: true })}
-                      className="mt-3 w-full bg-white/20 hover:bg-white/30 rounded-xl py-2 text-sm font-medium text-white transition-colors">
-                      บันทึกพิเศษ
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ปุ่มเปิด/ปิดกล้อง */}
-          <button onClick={toggleCamera}
-            className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-base transition-all active:scale-95 ${
-              cameraOn
-                ? 'bg-red-900/50 border border-red-700 text-red-300 hover:bg-red-900'
-                : 'bg-scout-700 hover:bg-scout-600 text-white shadow-lg shadow-scout-900'
-            }`}>
-            {cameraOn ? <><CameraOff size={20} /> ปิดกล้อง</> : <><Camera size={20} /> เปิดกล้องสแกน</>}
-          </button>
-
-          <p className="text-center text-scout-500 text-xs">
-            {cameraOn ? 'นำ QR Code เข้ามาในกรอบสีเขียว' : 'กดปุ่มด้านบนเพื่อเริ่มสแกน'}
-          </p>
-        </div>
-      )}
-
-      {tab === 'list' && (
-        <div className="px-4 space-y-2">
-          <div className="bg-gray-50 dark:bg-scout-900/80 rounded-xl p-3 border border-gray-400 dark:border-scout-800 flex items-center gap-2 mb-3">
-            <Users size={15} className="text-scout-400" />
-            <span className="text-scout-700 dark:text-scout-300 text-sm">สแกนแล้ว <strong className="text-white">{scanned.length}</strong> คน</span>
-          </div>
-          {scanned.length === 0 && (
-            <div className="text-center py-10 text-gray-400 dark:text-scout-500">
-              <p className="text-3xl mb-2">📋</p>
-              <p>ยังไม่มีการสแกน</p>
+                {cameraOn ? <><CameraOff size={22} /> ปิดกล้อง</> : <><Camera size={22} /> เริ่มสแกน QR</>}
+              </button>
             </div>
           )}
-          {scanned.map((a, i) => (
-            <div key={a.id} className="bg-gray-50 dark:bg-scout-900/80 rounded-2xl p-3 border border-gray-400 dark:border-scout-800 flex items-center gap-3">
-              <span className="text-scout-500 text-xs w-5 text-center">{i + 1}</span>
-              <span className="text-lg">{a.outOfSchedule ? '🔶' : '✅'}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-scout-900 dark:text-white text-sm font-medium truncate">{a.scout?.firstName} {a.scout?.lastName}</p>
-                <p className="text-gray-500 dark:text-scout-400 text-xs">หมู่ {a.scout?.squad?.number} · {new Date(a.scannedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</p>
+
+          {/* List Tab Content */}
+          {tab === 'list' && (
+            <div className="px-4 space-y-3 pb-6">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-gray-600 dark:text-gray-400 font-bold text-sm">ประวัติการสแกนล่าสุด</h3>
+                <span className="text-[10px] bg-gray-300 dark:bg-scout-800 px-2 py-1 rounded-md font-bold">Total: {scanned.length}</span>
               </div>
-              {a.outOfSchedule && <span className="text-xs text-orange-400 bg-orange-900/30 px-2 py-0.5 rounded-full flex-shrink-0">นอกตาราง</span>}
+              
+              {scanned.length === 0 ? (
+                <div className="text-center py-20 opacity-40">
+                  <p className="text-5xl mb-2">📥</p>
+                  <p className="font-bold">ยังไม่มีข้อมูล</p>
+                </div>
+              ) : (
+                scanned.map((a, i) => (
+                  <div key={a.id} className="bg-white dark:bg-scout-900/60 rounded-2xl p-4 border border-gray-300 dark:border-scout-800 flex items-center gap-4 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-scout-800 flex items-center justify-center text-[10px] font-black text-gray-400">
+                      {scanned.length - i}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-scout-900 dark:text-white font-bold truncate">
+                        {a.scout?.firstName} {a.scout?.lastName}
+                      </p>
+                      <p className="text-gray-500 dark:text-scout-400 text-xs font-medium">
+                         หมู่ {a.scout?.squad?.number || '-'} · {new Date(a.scannedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {a.outOfSchedule ? 
+                        <span className="text-[9px] font-black text-orange-500 bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20">EXTRA</span> : 
+                        <span className="text-[9px] font-black text-green-500 bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20">NORMAL</span>
+                      }
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
+      {/* Navigation ด้านล่าง */}
       <BottomNav />
     </div>
   )

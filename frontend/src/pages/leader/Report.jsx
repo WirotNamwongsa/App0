@@ -1,6 +1,5 @@
 import { useQuery } from 'react-query'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 import { CheckCircle, XCircle } from 'lucide-react'
 
@@ -116,7 +115,6 @@ export default function LeaderReport() {
           </div>
         </>
       )}
-      <BottomNav />
     </div>
   )
 }

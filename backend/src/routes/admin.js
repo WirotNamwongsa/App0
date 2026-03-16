@@ -10,11 +10,7 @@ router.use(authenticate, requireRole('ADMIN'))
 // GET /api/admin/accounts
 router.get('/accounts', async (req, res) => {
   const users = await prisma.user.findMany({
-<<<<<<< HEAD
     select: { id: true, username: true, role: true, name: true, campId: true, camp: true, leadingSquad: true, staffActivity: true, scoutAccount: { select: { id: true, squadId: true, firstName: true, lastName: true } } },
-=======
-    select: { id: true, username: true, role: true, name: true, campId: true, camp: true, leadingSquad: true, staffActivity: true },
->>>>>>> 257707a (first commit)
     orderBy: { role: 'asc' }
   })
   res.json(users)
@@ -22,11 +18,8 @@ router.get('/accounts', async (req, res) => {
 
 // POST /api/admin/accounts
 router.post('/accounts', async (req, res) => {
-<<<<<<< HEAD
   const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email } = req.body
-=======
-  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province } = req.body
->>>>>>> 257707a (first commit)
+
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
     data: { username, password: hashed, role, name, campId: campId || null }
@@ -35,7 +28,6 @@ router.post('/accounts', async (req, res) => {
   // ถ้า role เป็น SCOUT สร้าง Scout record อัตโนมัติ
   if (role === 'SCOUT') {
     const scoutCode = `SC${Date.now().toString().slice(-6)}`
-    // แยกชื่อ-นามสกุลจาก name ถ้าไม่ได้ส่งมา
     const parts = name.trim().split(' ')
     const fName = firstName || parts[0] || name
     const lName = lastName || parts.slice(1).join(' ') || '-'
@@ -47,13 +39,9 @@ router.post('/accounts', async (req, res) => {
         nickname: nickname || fName,
         school: school || '-',
         province: province || '-',
-<<<<<<< HEAD
         phone: phone || null,
         email: email || null,
         squadId: squadId || null,
-=======
-        squadId: null,
->>>>>>> 257707a (first commit)
         userId: user.id
       }
     })
@@ -73,16 +61,12 @@ router.post('/accounts', async (req, res) => {
 
 // PATCH /api/admin/accounts/:id
 router.patch('/accounts/:id', async (req, res) => {
-<<<<<<< HEAD
   const { name, role, campId, activityId, password, squadId } = req.body
-=======
-  const { name, role, campId, activityId, password } = req.body
->>>>>>> 257707a (first commit)
+
   const data = { name, role, campId: campId || null }
   if (password) data.password = await bcrypt.hash(password, 10)
   const user = await prisma.user.update({ where: { id: req.params.id }, data })
 
-<<<<<<< HEAD
   // ถ้า role เป็น SCOUT ให้อัปเดต squadId ใน Scout ด้วย
   if (role === 'SCOUT') {
     await prisma.scout.updateMany({
@@ -93,19 +77,10 @@ router.patch('/accounts/:id', async (req, res) => {
 
   // ถ้า role เป็น STAFF ให้ผูก activityId ผ่าน Activity.staffId
   if (role === 'STAFF') {
-=======
-  // ถ้า role เป็น STAFF ให้ผูก activityId ผ่าน Activity.staffId
-  if (role === 'STAFF') {
-    // เคลียร์ activity เดิมที่ผูกกับ user นี้ก่อน
->>>>>>> 257707a (first commit)
     await prisma.activity.updateMany({
       where: { staffId: req.params.id },
       data: { staffId: null }
     })
-<<<<<<< HEAD
-=======
-    // ผูก activity ใหม่
->>>>>>> 257707a (first commit)
     if (activityId) {
       await prisma.activity.update({
         where: { id: activityId },
@@ -120,9 +95,7 @@ router.patch('/accounts/:id', async (req, res) => {
 
 // DELETE /api/admin/accounts/:id
 router.delete('/accounts/:id', async (req, res) => {
-  // ลบ Scout record ที่ผูกกับ user นี้ก่อน
   await prisma.scout.deleteMany({ where: { userId: req.params.id } })
-  // ลบ activity staffId ที่ผูกอยู่
   await prisma.activity.updateMany({ where: { staffId: req.params.id }, data: { staffId: null } })
   await prisma.user.delete({ where: { id: req.params.id } })
   res.json({ message: 'ลบบัญชีสำเร็จ' })
@@ -148,22 +121,72 @@ router.get('/audit', async (req, res) => {
   res.json(logs)
 })
 
-// POST /api/admin/import-scouts - import CSV/JSON
+// POST /api/admin/import-scouts
 router.post('/import-scouts', async (req, res) => {
-  const { scouts } = req.body // [{ firstName, lastName, scoutCode?, school, province, ... }]
+  const { scouts } = req.body
   if (!Array.isArray(scouts)) throw createError(400, 'ข้อมูลต้องเป็น array')
   
   const results = []
+  const defaultPassword = 'scout1234'
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+  
   for (const s of scouts) {
-    const scoutCode = s.scoutCode || `SC${Date.now()}${Math.random().toString(36).substr(2,4).toUpperCase()}`
-    const scout = await prisma.scout.upsert({
-      where: { scoutCode },
-      create: { ...s, scoutCode },
-      update: s
-    })
-    results.push(scout)
+    try {
+      const scoutCode = s.scoutCode || `SC${Date.now()}${Math.random().toString(36).substr(2,4).toUpperCase()}`
+      
+      // สร้าง User ก่อน
+      const username = `scout_${scoutCode.toLowerCase()}`
+      const user = await prisma.user.upsert({
+        where: { username },
+        update: {},
+        create: {
+          username,
+          password: hashedPassword,
+          role: 'SCOUT',
+          name: `${s.firstName} ${s.lastName}`,
+          campId: s.campId || null
+        }
+      })
+      
+      // สร้าง Scout แล้วผูกกับ User
+      const scout = await prisma.scout.upsert({
+        where: { scoutCode },
+        create: { 
+          ...s, 
+          scoutCode,
+          userId: user.id 
+        },
+        update: { 
+          ...s,
+          userId: user.id 
+        }
+      })
+      
+      results.push({ 
+        scout, 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          password: defaultPassword 
+        } 
+      })
+    } catch (error) {
+      console.error(`Error importing scout ${s.scoutCode}:`, error)
+      results.push({ 
+        error: error.message, 
+        scoutCode: s.scoutCode || 'unknown' 
+      })
+    }
   }
-  res.status(201).json({ count: results.length, scouts: results })
+  
+  const successCount = results.filter(r => !r.error).length
+  const errorCount = results.filter(r => r.error).length
+  
+  res.status(201).json({ 
+    count: successCount, 
+    errors: errorCount,
+    scouts: results 
+  })
 })
 
 export default router

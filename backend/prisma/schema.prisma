@@ -1,10 +1,6 @@
 generator client {
-<<<<<<< HEAD
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
-=======
-  provider = "prisma-client-js"
->>>>>>> 257707a (first commit)
 }
 
 datasource db {
@@ -13,16 +9,16 @@ datasource db {
 }
 
 // ============== MODELS ==============
-
 model Camp {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  troops    Troop[]
-  users     User[]
-  schedules Schedule[]
+  troops        Troop[]
+  users         User[]
+  schedules     Schedule[]
+  activityGroups ActivityGroup[]
 }
 
 model Troop {
@@ -38,18 +34,20 @@ model Troop {
 }
 
 model Squad {
-  id        String   @id @default(uuid())
-  name      String
-  number    Int
-  troopId   String
-  leaderId  String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  number        Int
+  troopId       String
+  leaderId      String?  @unique
+  activityGroupId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  troop     Troop    @relation(fields: [troopId], references: [id])
-  leader    User?    @relation("SquadLeader", fields: [leaderId], references: [id])
-  scouts    Scout[]
-  schedules Schedule[]
+  troop         Troop    @relation(fields: [troopId], references: [id])
+  leader        User?    @relation("SquadLeader", fields: [leaderId], references: [id])
+  scouts        Scout[]
+  schedules     Schedule[]
+  activityGroup ActivityGroup? @relation("SquadActivityGroup", fields: [activityGroupId], references: [id])
 }
 
 model User {
@@ -59,16 +57,15 @@ model User {
   role         String
   name         String
   campId       String?
-
-  camp         Camp? @relation(fields: [campId], references: [id])
-
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   leadingSquad Squad?   @relation("SquadLeader")
   staffActivity Activity? @relation("StaffActivity")
+  managingActivityGroups ActivityGroup[] @relation("ActivityGroupManager")
   auditLogs    AuditLog[]
   scoutAccount Scout?   @relation("ScoutUser")
+  camp         Camp?     @relation(fields: [campId], references: [id])
 }
 
 model Scout {
@@ -108,6 +105,22 @@ model Activity {
   schedules   Schedule[]
 }
 
+model ActivityGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  campId      String
+  managerId   String?
+  maxScouts   Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  camp        Camp     @relation(fields: [campId], references: [id])
+  manager     User?    @relation("ActivityGroupManager", fields: [managerId], references: [id])
+  squads      Squad[]  @relation("SquadActivityGroup")
+}
+
 model Schedule {
   id         String   @id @default(uuid())
   activityId String
@@ -120,6 +133,8 @@ model Schedule {
   activity   Activity @relation(fields: [activityId], references: [id])
   camp       Camp     @relation(fields: [campId], references: [id])
   squad      Squad?   @relation(fields: [squadId], references: [id])
+
+  @@unique([activityId, campId, date, slot])
 }
 
 model Attendance {

@@ -1,8 +1,8 @@
 import { useQuery } from 'react-query'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 import { CheckCircle, AlertTriangle, Clock } from 'lucide-react'
 
 export default function StaffScanned() {
@@ -81,7 +81,6 @@ export default function StaffScanned() {
           ))}
         </div>
       )}
-
       <BottomNav />
     </div>
   )

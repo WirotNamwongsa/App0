@@ -1,13 +1,19 @@
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 import { Activity, Users, ScanLine, Flag } from 'lucide-react'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const { logout } = useAuthStore()
   const { data: overview } = useQuery('admin-overview', () => api.get('/reports/overview'))
+
+  const handleLogout = () => {
+    logout()
+  }
 
  const quickLinks = [
   { label: 'Import ลูกเสือ', icon: '📥', path: '/admin/import' },
@@ -18,7 +24,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <PageHeader title="Admin Dashboard" showLogout />
+      <PageHeader title="Admin Dashboard" />
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="card text-center">
@@ -65,6 +71,7 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+      
       <BottomNav />
     </div>
   )

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leaderApi } from '../../services/api';
-import { BottomNav, Card, ProgressBar, PageHeader, Spinner, Badge } from '../../components/common/UI';
+import { Card, ProgressBar, PageHeader, Spinner, Badge } from '../../components/common/UI.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 
 const NAV = [
@@ -90,8 +90,6 @@ export default function LeaderHome() {
           })}
         </Card>
       </div>
-
-      <BottomNav items={NAV} active="home" onSelect={() => {}} />
     </div>
   );
 }

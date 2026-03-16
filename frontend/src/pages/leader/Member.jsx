@@ -2,7 +2,6 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useState } from 'react'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
 
@@ -62,7 +61,6 @@ export default function LeaderMember() {
           </div>
         </div>
       )}
-      <BottomNav />
     </div>
   )
 }

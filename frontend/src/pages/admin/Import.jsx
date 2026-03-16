@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from 'react-query'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 import toast from 'react-hot-toast'
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Plus, X, UserPlus, Eye } from 'lucide-react'
 
@@ -338,12 +338,36 @@ export default function AdminImport() {
             <CheckCircle size={24} className="text-green-500" />
             <div>
               <p className="font-semibold text-green-700 dark:text-green-400">นำเข้าสำเร็จ!</p>
-              <p className="text-sm text-green-600 dark:text-green-500">เพิ่มลูกเสือ {result.count} คนเข้าระบบแล้ว</p>
+              <p className="text-sm text-green-600 dark:text-green-500">
+                เพิ่มลูกเสือ {result.count} คนเข้าระบบแล้ว
+                {result.errors > 0 && ` (พบข้อผิดพลาด ${result.errors} รายการ)`}
+              </p>
+              {result.count > 0 && (
+                <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+                  💡 Username และ Password ถูกสร้างอัตโนมัติ (password: scout1234)
+                </p>
+              )}
             </div>
           </div>
+          
+          {/* Show user credentials */}
+          {result.scouts && result.scouts.filter(s => !s.error).length > 0 && (
+            <div className="mt-4 p-3 bg-white dark:bg-green-900/30 rounded-lg">
+              <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">บัญชีที่สร้าง:</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {result.scouts.filter(s => !s.error).slice(0, 5).map((item, i) => (
+                  <div key={i} className="text-xs text-green-600 dark:text-green-500">
+                    {item.scout.firstName} {item.scout.lastName} → {item.user.username} : {item.user.password}
+                  </div>
+                ))}
+                {result.scouts.filter(s => !s.error).length > 5 && (
+                  <p className="text-xs text-green-600 dark:text-green-500">และอีก {result.scouts.filter(s => !s.error).length - 5} คน...</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
-
       <BottomNav />
     </div>
   )

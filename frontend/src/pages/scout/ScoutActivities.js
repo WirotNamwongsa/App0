@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scoutApi } from '../../services/api';
-import { BottomNav, Card, Spinner } from '../../components/common/UI';
+import { Card, Spinner } from '../../components/common/UI.jsx';
 
 const NAV = [
   { key: 'home', icon: '🏠', label: 'หน้าแรก' },
@@ -80,8 +80,6 @@ export default function ScoutActivities() {
           );
         })}
       </div>
-
-      <BottomNav items={NAV} active="activities" onSelect={handleNav} />
     </div>
   );
 }
