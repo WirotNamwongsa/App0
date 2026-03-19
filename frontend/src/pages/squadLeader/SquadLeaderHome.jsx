@@ -93,15 +93,12 @@ export default function SquadLeaderHome() {
   return (
     <div className="page">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5">
         <div>
           <p className="text-xs text-gray-400">ผู้กำกับหมู่</p>
           <h1 className="text-xl font-bold text-scout-900 dark:text-white">หมู่ {squad?.name}</h1>
           <p className="text-xs text-gray-400 mt-0.5">กอง {squad?.troop?.name} · ค่าย {squad?.troop?.camp?.name}</p>
         </div>
-        <button onClick={logout} className="btn-secondary text-sm px-4 py-2.5">
-          ออกจากระบบ
-        </button>
       </div>
 
       {/* Summary Cards */}

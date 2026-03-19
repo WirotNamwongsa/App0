@@ -58,7 +58,7 @@ export default function SquadLeaderAddScout() {
   return (
     <div className="page">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => window.history.back()}
@@ -71,9 +71,6 @@ export default function SquadLeaderAddScout() {
             <p className="text-xs text-gray-400">หมู่ {squad?.name} · กอง {squad?.troop?.name}</p>
           </div>
         </div>
-        <button onClick={logout} className="btn-secondary text-sm px-4 py-2.5">
-          ออกจากระบบ
-        </button>
       </div>
 
       {/* Status Card */}
