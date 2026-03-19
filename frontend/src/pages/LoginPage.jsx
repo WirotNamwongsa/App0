@@ -19,6 +19,9 @@ export default function LoginPage() {
       setAuth(user, token)
       toast.success(`ยินดีต้อนรับ ${user.name}`)
       navigate('/')
+
+    } catch (error) {
+      console.error("Login error:", error)
     } finally {
       setLoading(false)
     }

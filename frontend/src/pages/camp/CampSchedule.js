@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { campApi, activityApi } from '../../services/api';
-import { BottomNav, PageHeader, Card, Spinner } from '../../components/common/UI';
+import { PageHeader, Card, Spinner } from '../../components/common/UI.jsx';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -150,8 +150,6 @@ export default function CampSchedule() {
           </div>
         </div>
       )}
-
-      <BottomNav items={NAV} active="schedule" onSelect={handleNav} />
     </div>
   );
 }

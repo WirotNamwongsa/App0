@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { campApi } from '../../services/api';
-import { BottomNav, PageHeader, Card, Spinner, Button } from '../../components/common/UI';
+import { PageHeader, Card, Spinner, Button } from '../../components/common/UI.jsx';
 import toast from 'react-hot-toast';
 
 const NAV = [
@@ -93,8 +93,6 @@ export default function CampStructure() {
           </div>
         )}
       </div>
-
-      <BottomNav items={NAV} active="structure" onSelect={handleNav} />
     </div>
   );
 }

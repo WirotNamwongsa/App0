@@ -34,6 +34,21 @@ router.post('/', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { activityId, campId, squadIds, date, slot } = req.body
   const targetCampId = req.user.role === 'CAMP_MANAGER' ? req.user.campId : campId
   
+  // ตรวจสอบว่ามีข้อมูลลูกเสือครบในค่ายย่อยหรือไม่
+  const campScoutsCount = await prisma.scout.count({
+    where: {
+      squad: {
+        troop: { campId: targetCampId }
+      }
+    }
+  })
+  
+  if (campScoutsCount === 0) {
+    return res.status(400).json({ 
+      message: 'ไม่สามารถสร้างตารางกิจกรรมได้ เนื่องจากยังไม่มีข้อมูลลูกเสือในค่ายย่อยนี้' 
+    })
+  }
+  
   if (squadIds && squadIds.length > 0) {
     const schedules = await prisma.schedule.createMany({
       data: squadIds.map(squadId => ({ activityId, campId: targetCampId, squadId, date: new Date(date), slot })),

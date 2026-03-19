@@ -1,6 +1,5 @@
 import { useQuery } from 'react-query'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
 
 const SLOTS = [
@@ -69,7 +68,6 @@ export default function ScoutSchedule() {
         ))
       )}
 
-      <BottomNav />
     </div>
   )
 }

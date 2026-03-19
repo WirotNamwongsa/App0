@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leaderApi } from '../../services/api';
-import { PageHeader, Card, Button, Spinner } from '../../components/common/UI';
+import { PageHeader, Card, Button, Spinner } from '../../components/common/UI.jsx';
 import toast from 'react-hot-toast';
 
 export default function LeaderScout() {

@@ -64,6 +64,118 @@ const getScout = async (req, res, next) => {
   }
 };
 
+// GET /api/leader/available-scouts — ดูรายชื่อลูกเสือที่ยังไม่มีหมู่และมาจากสถานศึกษาเดียวกัน
+const getAvailableScouts = async (req, res, next) => {
+  try {
+    const patrolId = req.user.patrolLeader?.id;
+    
+    // ดูข้อมูลหมู่ของตัวเองเพื่อรู้ว่ามาจากสถานศึกษาอะไร
+    const patrol = await prisma.patrol.findUnique({
+      where: { id: patrolId },
+      include: { 
+        scouts: { take: 1 }, // เอาแค่ 1 คนเพื่อดูสถานศึกษา
+        troop: { include: { camp: true } }
+      }
+    });
+
+    if (!patrol) return res.status(404).json({ error: 'ไม่พบข้อมูลหมู่' });
+
+    // หาสถานศึกษาของหมู่
+    const patrolSchool = patrol.scouts.length > 0 ? patrol.scouts[0].school : null;
+
+    // ดูจำนวนสมาชิกปัจจุบัน
+    const currentCount = await prisma.scout.count({ where: { patrolId } });
+
+    // หาลูกเสือที่ยังไม่มีหมู่และมาจากสถานศึกษาเดียวกัน
+    const availableScouts = await prisma.scout.findMany({
+      where: {
+        patrolId: null,
+        ...(patrolSchool ? { school: patrolSchool } : {})
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        scoutCode: true,
+        school: true,
+        province: true
+      },
+      orderBy: { firstName: 'asc' }
+    });
+
+    res.json({
+      scouts: availableScouts,
+      currentCount,
+      maxCount: 8,
+      canAdd: currentCount < 8,
+      school: patrolSchool
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/leader/add-scout — เพิ่มลูกเสือเข้าหมู่
+const addScoutToPatrol = async (req, res, next) => {
+  try {
+    const { scoutId } = req.body;
+    const patrolId = req.user.patrolLeader?.id;
+
+    // ตรวจสอบว่าหมู่เต็มหรือยัง
+    const currentCount = await prisma.scout.count({ where: { patrolId } });
+    if (currentCount >= 8) {
+      return res.status(400).json({ error: 'หมู่เต็ม (8 คนแล้ว)' });
+    }
+
+    // ตรวจสอบว่าลูกเสือมีอยู่จริงและยังไม่มีหมู่
+    const scout = await prisma.scout.findUnique({
+      where: { id: scoutId },
+      include: { patrol: true }
+    });
+
+    if (!scout) {
+      return res.status(404).json({ error: 'ไม่พบลูกเสือ' });
+    }
+
+    if (scout.patrolId) {
+      return res.status(400).json({ error: 'ลูกเสือคนนี้มีหมู่แล้ว' });
+    }
+
+    // ตรวจสอบว่ามาจากสถานศึกษาเดียวกัน
+    const patrol = await prisma.patrol.findUnique({
+      where: { id: patrolId },
+      include: { scouts: { take: 1 } }
+    });
+
+    const patrolSchool = patrol.scouts.length > 0 ? patrol.scouts[0].school : null;
+    
+    if (patrolSchool && scout.school !== patrolSchool) {
+      return res.status(400).json({ error: 'ลูกเสือต้องมาจากสถานศึกษาเดียวกัน' });
+    }
+
+    // เพิ่มลูกเสือเข้าหมู่
+    const updated = await prisma.scout.update({
+      where: { id: scoutId },
+      data: { patrolId }
+    });
+
+    await createAuditLog({
+      accountId: req.user.id,
+      scoutId: scoutId,
+      action: 'ASSIGN_PATROL',
+      entity: 'Scout',
+      entityId: scoutId,
+      oldValue: { patrolId: null },
+      newValue: { patrolId },
+      ipAddress: req.ip,
+    });
+
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // PATCH /api/leader/scouts/:id — แก้ไขข้อมูลส่วนตัว
 const updateScout = async (req, res, next) => {
   try {
@@ -97,4 +209,4 @@ const updateScout = async (req, res, next) => {
   }
 };
 
-module.exports = { getMyPatrol, getScout, updateScout };
+module.exports = { getMyPatrol, getScout, getAvailableScouts, addScoutToPatrol, updateScout };

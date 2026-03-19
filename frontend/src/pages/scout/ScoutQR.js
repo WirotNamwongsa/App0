@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scoutApi } from '../../services/api';
-import { BottomNav, Spinner } from '../../components/common/UI';
+import { Spinner } from '../../components/common/UI.jsx';
 
 const NAV = [
-  { key: 'home', icon: '🏠', label: 'หน้าแรก' },
-  { key: 'activities', icon: '🎯', label: 'กิจกรรม' },
-  { key: 'qr', icon: '📱', label: 'QR ฉัน' },
-  { key: 'profile', icon: '👤', label: 'โปรไฟล์' },
+  { key: 'home', icon: '', label: 'หน้าแรก' },
+  { key: 'activities', icon: '', label: 'กิจกรรม' },
+  { key: 'qr', icon: '', label: 'QR ฉัน' },
+  { key: 'profile', icon: '', label: 'โปรไฟล์' },
 ];
 
 export default function ScoutQR() {
@@ -82,11 +82,9 @@ export default function ScoutQR() {
         </div>
 
         <p style={{ color: '#475569', fontSize: '0.78rem', textAlign: 'center' }}>
-          💡 เพิ่มความสว่างหน้าจอก่อนให้สแกน
+          เพิ่มความสว่างหน้าจอก่อนให้สแกน
         </p>
       </div>
-
-      <BottomNav items={NAV} active="qr" onSelect={handleNav} />
     </div>
   );
 }

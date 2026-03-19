@@ -1,8 +1,8 @@
 import { useQuery } from 'react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 
 export default function ScoutQR() {
   const { data: scout } = useQuery('my-scout', () => api.get('/scouts/my'))

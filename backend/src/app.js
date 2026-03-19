@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth.routes');
 const scoutRoutes = require('./routes/scout.routes');
 const leaderRoutes = require('./routes/leader.routes');
+const squadLeaderRoutes = require('./routes/squadLeader');
 const campRoutes = require('./routes/camp.routes');
 const adminRoutes = require('./routes/admin.routes');
 const staffRoutes = require('./routes/staff.routes');
@@ -53,6 +54,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/scouts', scoutRoutes);
 app.use('/api/leader', leaderRoutes);
+app.use('/api/squad-leader', squadLeaderRoutes);
 app.use('/api/camp', campRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/staff', staffRoutes);

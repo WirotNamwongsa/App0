@@ -66,7 +66,7 @@ export default function AdminCamps() {
     if (a.campName !== b.campName) return a.campName.localeCompare(b.campName)
     if (a.troopName !== b.troopName) return a.troopName.localeCompare(b.troopName)
     return a.number - b.number
-  });
+  })
   const unassigned = allScouts.filter(s => !s.squadId)
   const assigned = allScouts.filter(s => s.squadId)
 
@@ -274,7 +274,7 @@ export default function AdminCamps() {
                                               <span>ย้าย</span>
                                             </button>
                                           </div>
-                                        ))}
+                                        ))
                                       </div>
                                     </div>
                                   )}
@@ -288,97 +288,93 @@ export default function AdminCamps() {
                   })}
                 </div>
               )}
-            </div>
-          )
-        })}
-      </div>
 
-      {/* ลูกเสือทั้งหมด */}
-      <div className="mt-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:gap-4">
-          <p className="text-sm font-semibold text-scout-800 dark:text-scout-200 whitespace-nowrap min-w-0">
-            📋 รายชื่อลูกเสือทั้งหมด ({filteredScouts.length} คน)
-          </p>
-          
-          {/* ช่องค้นหาและ Dropdown โรงเรียน */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อ, รหัส..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="input pl-9 pr-4 text-sm w-full sm:w-48"
-              />
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-            
-            {/* Dropdown โรงเรียน */}
-            <div className="relative flex-1 sm:flex-initial">
-              <select 
-                value={selectedSchool}
-                onChange={e => setSelectedSchool(e.target.value)}
-                className="input pl-9 pr-8 text-sm appearance-none cursor-pointer bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 w-full"
-              >
-                <option value="ALL">โรงเรียนทั้งหมด</option>
-                {allSchools.map(school => (
-                  <option key={school} value={school}>{school}</option>
-                ))}
-              </select>
-              <School size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400" />
-              <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 rotate-90" />
-            </div>
-          </div>
-        </div>
-        
-        {/* รายชื่อลูกเสือทั้งหมด (รวมกัน) */}
-        <div className="space-y-2 max-h-96 overflow-y-auto">
-          {filteredScouts.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
-                <Search size={20} className="text-gray-400" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลลูกเสือ'}
-              </p>
-            </div>
-          ) : (
-            filteredScouts.map(s => (
-              <div key={s.id} className="card flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  s.squadId 
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    : 'bg-scout-100 dark:bg-scout-700 text-scout-700 dark:text-scout-300'
-                }`}>
-                  {s.firstName?.[0]}
+              {/* ลูกเสือทั้งหมด */}
+              <div className="mt-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <p className="text-sm font-semibold text-scout-800 dark:text-scout-200">
+                    📋 รายชื่อลูกเสือทั้งหมด ({filteredScouts.length} คน)
+                  </p>
+                  
+                  {/* ช่องค้นหาและ Dropdown โรงเรียน */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="ค้นหาชื่อ, รหัส..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="input pl-9 pr-4 text-sm w-48"
+                      />
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    </div>
+                    
+                    {/* Dropdown โรงเรียน */}
+                    <div className="relative">
+                      <select 
+                        value={selectedSchool}
+                        onChange={e => setSelectedSchool(e.target.value)}
+                        className="input pl-9 pr-8 text-sm appearance-none cursor-pointer bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+                      >
+                        <option value="ALL">โรงเรียนทั้งหมด</option>
+                        {allSchools.map(school => (
+                          <option key={school} value={school}>{school}</option>
+                        ))}
+                      </select>
+                      <School size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400" />
+                      <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 rotate-90" />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-scout-900 dark:text-white">{s.firstName} {s.lastName}</p>
-                  <p className="text-xs text-gray-400">{s.scoutCode}</p>
-                  {s.school && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{s.school}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {s.squadId ? (
-                    <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full">
-                      มีหมู่
-                    </span>
+                
+                {/* รายชื่อลูกเสือทั้งหมด (รวมกัน) */}
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {filteredScouts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                        <Search size={20} className="text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลลูกเสือ'}
+                      </p>
+                    </div>
                   ) : (
-                    <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
-                      ไม่มีหมู่
-                    </span>
+                    filteredScouts.map(s => (
+                      <div key={s.id} className="card flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          s.squadId 
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-scout-100 dark:bg-scout-700 text-scout-700 dark:text-scout-300'
+                        }`}>
+                          {s.firstName?.[0]}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-scout-900 dark:text-white">{s.firstName} {s.lastName}</p>
+                          <p className="text-xs text-gray-400">{s.scoutCode}</p>
+                          {s.school && (
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{s.school}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {s.squadId ? (
+                            <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full">
+                              มีหมู่
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
+                              ไม่มีหมู่
+                            </span>
+                          )}
+                          <button onClick={() => setModal({ type: 'move', scout: s, formData: { squadId: s.squadId || '' } })}
+                            className="btn-primary text-xs px-3 py-1.5">
+                            <ArrowRight size={13} /> ย้ายหมู่
+                          </button>
+                        </div>
+                      </div>
+                    ))
                   )}
-                  <button onClick={() => setModal({ type: 'move', scout: s, formData: { squadId: s.squadId || '' } })}
-                    className="btn-primary text-xs px-3 py-1.5">
-                    <ArrowRight size={13} /> ย้ายหมู่
-                  </button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </div>
 
       {/* Modal */}
       {modal && (
@@ -628,15 +624,163 @@ export default function AdminCamps() {
                 className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-scout-800 text-gray-600 dark:text-scout-300 hover:bg-gray-200 dark:hover:bg-scout-700 transition-all">
                 ยกเลิก
               </button>
-            </div>
-          </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
-      `}</style>
     </div>
   )
+})()
+) : modal.type === 'view-camp-details' || modal.type === 'view-troop-details' || modal.type === 'view-squad-details' ? (
+<div className="space-y-4">
+  {/* สถิติทั่วไป */}
+  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+    <div className="flex items-center gap-2 mb-2">
+      <Users size={16} className="text-blue-600 dark:text-blue-400" />
+      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">ข้อมูลทั่วไป</p>
+    </div>
+    <div className="grid grid-cols-2 gap-3 text-xs">
+      <div>
+        <p className="text-gray-500 dark:text-gray-400">จำนวนลูกเสือ</p>
+        <p className="font-bold text-scout-900 dark:text-white">{modal.scouts.length} คน</p>
+      </div>
+      <div>
+        <p className="text-gray-500 dark:text-gray-400">สถานศึกษา</p>
+        <p className="font-bold text-scout-900 dark:text-white">{modal.schoolStats.length} แห่ง</p>
+      </div>
+    </div>
+  </div>
+
+  {/* สถิติสถานศึกษา */}
+  <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+    <div className="flex items-center gap-2 mb-3">
+      <School size={16} className="text-green-600 dark:text-green-400" />
+      <p className="text-sm font-semibold text-green-700 dark:text-green-300">สถิติสถานศึกษา</p>
+    </div>
+    {modal.schoolStats.length === 0 ? (
+      <p className="text-xs text-gray-500 dark:text-gray-400">ไม่มีข้อมูลสถานศึกษา</p>
+    ) : (
+      <div className="space-y-2">
+        {modal.schoolStats.map((stat, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <p className="text-xs text-gray-700 dark:text-gray-300">{stat.school}</p>
+            </div>
+            <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+              {stat.count} คน
+            </span>
+          </div>
+        ))}
+        {modal.schoolStats.length > 1 && (
+          <div className="pt-2 mt-2 border-t border-green-200 dark:border-green-800">
+            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <MapPin size={12} />
+              หมวดเดียวกันต้องมาจากสถานศึกษาเดียวกัน
+            </p>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+
+  {/* รายชื่อลูกเสือ */}
+  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+    <div className="flex items-center gap-2 mb-3">
+      <Shield size={16} className="text-gray-600 dark:text-gray-400" />
+      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">รายชื่อลูกเสือ ({modal.scouts.length})</p>
+    </div>
+    <div className="space-y-2 max-h-48 overflow-y-auto">
+      {modal.scouts.length === 0 ? (
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">ยังไม่มีลูกเสือ</p>
+      ) : (
+        modal.scouts.map(scout => (
+          <div key={scout.id} className="flex items-center gap-2 p-2 bg-white dark:bg-scout-900 rounded-lg">
+            <div className="w-6 h-6 rounded-full bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-xs font-bold text-scout-700 dark:text-scout-300">
+              {scout.firstName?.[0]}
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-scout-900 dark:text-white">{scout.firstName} {scout.lastName}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{scout.school || '-'}</p>
+            </div>
+            {scout.scoutCode && (
+              <span className="text-xs font-mono text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                {scout.scoutCode}
+              </span>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+</div>
+) : (
+<>
+  <input className="input" placeholder="ชื่อ" autoFocus value={modal.formData.name}
+    onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, name: e.target.value } }))} />
+  {modal.type !== 'camp' && (
+    <input className="input" type="number" placeholder="หมายเลข (1, 2, 3...)" value={modal.formData.number}
+      onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, number: e.target.value } }))} />
+  )}
+</>
+)}
+</div>
+<div className="flex gap-2 px-5 pb-5">
+{modal.type === 'move-confirm' ? (
+<>
+  <button onClick={confirmMove} className="btn-primary flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">ยืนยัน ย้าย</button>
+  <button onClick={() => setModal(m => ({ ...m, type: 'move' }))} className="btn-secondary flex-1">ย้อนกลับ</button>
+</>
+) : (
+<>
+  <button onClick={handleSubmit} className="btn-primary flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">บันทึก</button>
+  <button onClick={closeModal} className="btn-secondary flex-1">ยกเลิก</button>
+</>
+)}
+</div>
+</div>
+</div>
+)}
+
+{/* Confirm Delete Modal */}
+{confirmDel && (
+<div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+  style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.15s ease' }}
+  onClick={e => { if (e.target === e.currentTarget) setConfirmDel(null) }}>
+  <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-xs shadow-2xl text-center"
+    style={{ animation: 'slideUp 0.2s ease' }}>
+    <div className="px-6 pt-6 pb-2">
+      <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-3">
+        <Trash2 size={24} className="text-red-500" />
+      </div>
+      <p className="font-bold text-scout-900 dark:text-white text-lg">ลบข้อมูล?</p>
+      <p className="text-sm text-gray-500 dark:text-scout-400 mt-1">
+        ต้องการลบ <span className="font-semibold text-red-500">{confirmDel.label}</span> ใช่หรือไม่?
+      </p>
+      <p className="text-xs text-gray-400 mt-1">
+        {confirmDel.label.includes('ค่าย') 
+          ? '⚠️ การลบค่ายจะลบกองและหมู่ทั้งหมดในค่ายนี้ด้วย'
+          : confirmDel.label.includes('กอง')
+          ? '⚠️ การลบกองจะลบหมู่ทั้งหมดในกองนี้ด้วย'
+          : 'ข้อมูลจะหายจาก database ทันที'}
+      </p>
+    </div>
+    <div className="flex gap-2 p-4">
+      <button onClick={() => { confirmDel.onConfirm(); setConfirmDel(null) }}
+        className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white bg-red-500 hover:bg-red-600 transition-all">
+        ลบเลย
+      </button>
+      <button onClick={() => setConfirmDel(null)}
+        className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-scout-800 text-gray-600 dark:text-scout-300 hover:bg-gray-200 dark:hover:bg-scout-700 transition-all">
+        ยกเลิก
+      </button>
+    </div>
+  </div>
+</div>
+)}
+
+<style>{`
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
+`}</style>
+</div>
+)
 }

@@ -115,6 +115,78 @@ async function main() {
   console.log('  leader_1_1 / leader1234')
   console.log('  staff_skill / staff1234')
   console.log('  scout1 / scout1234')
+
+  // สร้างตารางกิจกรรม
+  console.log('📅 Creating schedules...')
+  
+  // กำหนดวันที่สำหรับตารางกิจกรรม
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  const schedules = [
+    // วันนี้
+    {
+      activityId: 'act-1', // ทักษะลูกเสือ
+      campId: campA.id,
+      squadId: squad1.id,
+      date: today,
+      slot: 'MORNING'
+    },
+    {
+      activityId: 'act-2', // ผจญภัย
+      campId: campA.id,
+      squadId: squad1.id,
+      date: today,
+      slot: 'AFTERNOON'
+    },
+    {
+      activityId: 'act-7', // พิธีเปิด
+      campId: campA.id,
+      squadId: null, // ทุกหมู่ในค่าย
+      date: today,
+      slot: 'EVENING'
+    },
+    // พรุ่งนี้
+    {
+      activityId: 'act-3', // เดินทางไกล
+      campId: campA.id,
+      squadId: squad1.id,
+      date: tomorrow,
+      slot: 'MORNING'
+    },
+    {
+      activityId: 'act-4', // CPR & AED
+      campId: campA.id,
+      squadId: squad1.id,
+      date: tomorrow,
+      slot: 'AFTERNOON'
+    },
+    {
+      activityId: 'act-9', // Camp Fire
+      campId: campA.id,
+      squadId: null, // ทุกหมู่ในค่าย
+      date: tomorrow,
+      slot: 'EVENING'
+    }
+  ]
+
+  for (const schedule of schedules) {
+    await prisma.schedule.upsert({
+      where: {
+        activityId_campId_date_slot: {
+          activityId: schedule.activityId,
+          campId: schedule.campId,
+          date: schedule.date,
+          slot: schedule.slot
+        }
+      },
+      update: {},
+      create: schedule
+    })
+  }
+  
+  console.log('📅 Schedules created!')
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect())

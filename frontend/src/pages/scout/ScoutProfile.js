@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scoutApi } from '../../services/api';
-import { BottomNav, Card, Spinner } from '../../components/common/UI';
+import { Card, Spinner } from '../../components/common/UI.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 
 const NAV = [
@@ -65,8 +65,6 @@ export default function ScoutProfile() {
           </p>
         </div>
       </div>
-
-      <BottomNav items={NAV} active="profile" onSelect={handleNav} />
     </div>
   );
 }

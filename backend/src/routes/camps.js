@@ -9,7 +9,6 @@ router.use(authenticate)
 
 // GET /api/camps
 router.get('/', requireRole('ADMIN'), async (req, res) => {
-<<<<<<< HEAD
   const camps = await prisma.camp.findMany({
     include: {
       troops: {
@@ -23,9 +22,6 @@ router.get('/', requireRole('ADMIN'), async (req, res) => {
       }
     }
   })
-=======
-  const camps = await prisma.camp.findMany({ include: { _count: { select: { troops: true } } } })
->>>>>>> 257707a (first commit)
   res.json(camps)
 })
 
@@ -58,7 +54,6 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
   
   const camp = await prisma.camp.create({ data: { name } })
   
-  // สร้างกองแรกของค่าย
   const troop = await prisma.troop.create({
     data: { 
       name: `กองที่ 1`, 
@@ -67,7 +62,6 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
     }
   })
   
-  // สร้างหมู่ 4 หมู่สำหรับกองแรก
   const squads = []
   for (let i = 1; i <= 4; i++) {
     const squad = await prisma.squad.create({
@@ -102,7 +96,6 @@ router.post('/:campId/troops', requireRole('ADMIN', 'CAMP_MANAGER'), async (req,
     }
   })
   
-  // สร้างหมู่ 4 หมู่สำหรับกองใหม่
   const squads = []
   for (let i = 1; i <= 4; i++) {
     const squad = await prisma.squad.create({
@@ -146,7 +139,7 @@ router.patch('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), a
   res.json(squad)
 })
 
-// DELETE /api/camps/:campId/troops/:troopId - ลบกอง (พร้อมหมู่ทั้งหมด)
+// DELETE /api/camps/:campId/troops/:troopId - ลบกอง
 router.delete('/:campId/troops/:troopId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const troop = await prisma.troop.findUnique({
     where: { id: req.params.troopId },
@@ -155,12 +148,10 @@ router.delete('/:campId/troops/:troopId', requireRole('ADMIN', 'CAMP_MANAGER'), 
   
   if (!troop) throw createError(404, 'ไม่พบกอง')
   
-  // ลบหมู่ทั้งหมดในกอง (cascade delete จะลบ scouts ในหมู่เหล่านั้นด้วย)
   await prisma.squad.deleteMany({
     where: { troopId: req.params.troopId }
   })
   
-  // ลบกอง
   await prisma.troop.delete({ where: { id: req.params.troopId } })
   
   await logAudit({ 
@@ -173,9 +164,7 @@ router.delete('/:campId/troops/:troopId', requireRole('ADMIN', 'CAMP_MANAGER'), 
   res.json({ message: 'ลบกองและหมู่ทั้งหมดสำเร็จ' })
 })
 
-<<<<<<< HEAD
-
-// DELETE /api/camps/:campId - ลบค่าย (พร้อมกองและหมู่ทั้งหมด)
+// DELETE /api/camps/:campId - ลบค่าย
 router.delete('/:campId', requireRole('ADMIN'), async (req, res) => {
   const camp = await prisma.camp.findUnique({
     where: { id: req.params.campId },
@@ -188,24 +177,20 @@ router.delete('/:campId', requireRole('ADMIN'), async (req, res) => {
   
   if (!camp) throw createError(404, 'ไม่พบค่าย')
   
-  // ลบ Schedule ทั้งหมดในค่าย
   await prisma.schedule.deleteMany({
     where: { campId: req.params.campId }
   })
   
-  // ลบหมู่ทั้งหมดในทุกกองของค่าย
   await prisma.squad.deleteMany({
     where: { 
       troop: { campId: req.params.campId } 
     }
   })
   
-  // ลบกองทั้งหมดในค่าย
   await prisma.troop.deleteMany({
     where: { campId: req.params.campId }
   })
   
-  // ลบค่าย
   await prisma.camp.delete({ where: { id: req.params.campId } })
   
   await logAudit({ 
@@ -224,7 +209,7 @@ router.delete('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), 
   res.json({ message: 'ลบหมู่สำเร็จ' })
 })
 
-// PATCH /api/camps/scouts/:scoutId/move - ย้ายลูกเสือไปหมู่อื่น
+// PATCH /api/camps/scouts/:scoutId/move - ย้ายลูกเสือ
 router.patch('/scouts/:scoutId/move', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { squadId } = req.body
   const scout = await prisma.scout.update({
@@ -245,8 +230,3 @@ router.get('/:campId/scouts', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, 
 })
 
 export default router
-
-// เพิ่ม endpoints ที่ขาดอยู่ก่อน export default
-=======
-export default router
->>>>>>> 257707a (first commit)

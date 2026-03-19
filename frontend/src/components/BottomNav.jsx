@@ -13,6 +13,11 @@ const navConfig = {
     { to: '/leader/home', icon: Users, label: 'หมู่' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
   ],
+  SQUAD_LEADER: [
+    { to: '/squad-leader/home', icon: Users, label: 'หมู่ของฉัน' },
+    { to: '/squad-leader/activities', icon: Calendar, label: 'ตารางกิจกรรม' },
+    { to: '/squad-leader/report', icon: FileText, label: 'รายงาน' },
+  ],
   STAFF: [
     { to: '/staff/scan', icon: ScanLine, label: 'สแกน' },
     { to: '/staff/scanned', icon: ClipboardList, label: 'รายชื่อ' },
@@ -36,7 +41,7 @@ export default function BottomNav() {
   const items = navConfig[user?.role] || []
 
   return (
-    <nav className="bottom-nav shadow-lg">
+    <nav className="bottom-nav shadow-lg md:hidden">
       {items.map(({ to, icon: Icon, label }) => (
         <NavLink key={to} to={to} className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <Icon size={22} />

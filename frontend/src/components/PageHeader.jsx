@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, LogOut } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import ThemeToggle from './ThemeToggle'
 
 export default function PageHeader({ title, showBack = false, showLogout = false }) {
   const navigate = useNavigate()
@@ -16,12 +15,11 @@ export default function PageHeader({ title, showBack = false, showLogout = false
         </button>
       )}
       <h1 className="text-xl font-display font-bold text-scout-900 dark:text-white flex-1">{title}</h1>
-      <div className="md:hidden"><ThemeToggle /></div>
       {showLogout && (
         <button
           type="button"
           onClick={logout}
-          className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+          className="md:hidden p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
           aria-label="Logout"
         >
           <LogOut size={20} />

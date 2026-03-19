@@ -2,8 +2,8 @@ import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 
 export default function LeaderHome() {
   const { user } = useAuthStore()
@@ -16,7 +16,7 @@ export default function LeaderHome() {
 
   return (
     <div className="page">
-      <PageHeader title={`หมู่ ${squad?.squad?.number || '-'}`} showLogout />
+      <PageHeader title={`หมู่ ${squad?.squad?.number || '-'}`} />
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-scout-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : squad ? (

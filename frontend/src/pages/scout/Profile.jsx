@@ -1,10 +1,16 @@
 import { useQuery } from 'react-query'
+import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 
 export default function ScoutProfile() {
   const { data: scout } = useQuery('my-scout', () => api.get('/scouts/my'))
+  const { logout } = useAuthStore()
+
+  const handleLogout = () => {
+    logout()
+  }
 
   const fields = [
     { label: 'ชื่อ-สกุล', value: scout ? `${scout.firstName} ${scout.lastName}` : '-' },
@@ -17,7 +23,7 @@ export default function ScoutProfile() {
 
   return (
     <div className="page">
-      <PageHeader title="โปรไฟล์ของฉัน" showLogout />
+      <PageHeader title="โปรไฟล์ของฉัน" />
       <div className="card space-y-4">
         {fields.map(f => (
           <div key={f.label} className="flex justify-between items-start">

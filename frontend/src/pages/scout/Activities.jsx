@@ -1,7 +1,7 @@
 import { useQuery } from 'react-query'
 import api from '../../lib/api'
-import BottomNav from '../../components/BottomNav'
 import PageHeader from '../../components/PageHeader'
+import BottomNav from '../../components/BottomNav'
 
 const typeLabel = { MAIN: 'กิจกรรมหลัก', SPECIAL: 'กิจกรรมพิเศษ', FREE: 'กิจกรรมยามว่าง' }
 const typeClass = { MAIN: 'badge-main', SPECIAL: 'badge-special', FREE: 'badge-free' }

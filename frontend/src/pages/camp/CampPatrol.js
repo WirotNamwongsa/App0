@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { campApi } from '../../services/api';
-import { PageHeader, Card, Spinner, Button } from '../../components/common/UI';
+import { PageHeader, Card, Spinner, Button } from '../../components/common/UI.jsx';
 import toast from 'react-hot-toast';
 
 export default function CampPatrol() {
