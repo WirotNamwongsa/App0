@@ -18,13 +18,10 @@ import LeaderHome from './pages/leader/Home'
 import LeaderMember from './pages/leader/Member'
 import LeaderReport from './pages/leader/Report'
 import LeaderSchedule from './pages/leader/Schedule'
-<<<<<<< HEAD
 
 // Squad Leader
 import SquadLeaderHome from './pages/squadLeader/SquadLeaderHome'
 import SquadLeaderAddScout from './pages/squadLeader/AddScout'
-=======
->>>>>>> d458ac3624e4d97c2cac3185aabe93c4fda331c4
 
 // Staff
 import StaffScan from './pages/staff/Scan'
