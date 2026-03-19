@@ -1,5 +1,9 @@
 import { NavLink } from 'react-router-dom'
+<<<<<<< HEAD
 import { Home, Calendar, QrCode, User, Users, FileText, MapPin, ScanLine, LayoutDashboard, ClipboardList, LogOut, ChevronRight, Menu, UserPlus } from 'lucide-react'
+=======
+import { Home, Calendar, QrCode, User, Users, FileText, MapPin, ScanLine, LayoutDashboard, ClipboardList, LogOut, ChevronRight, Menu } from 'lucide-react'
+>>>>>>> d458ac3624e4d97c2cac3185aabe93c4fda331c4
 import { useAuthStore } from '../store/authStore'
 import ThemeToggle from './ThemeToggle'
 import BottomNav from './BottomNav'
@@ -14,7 +18,11 @@ const navConfig = {
     { to: '/scout/profile', icon: User, label: 'โปรไฟล์' },
   ],
   TROOP_LEADER: [
+<<<<<<< HEAD
     { to: '/squad-leader/home', icon: Users, label: 'หมู่ของฉัน' },
+=======
+    { to: '/leader/home', icon: Users, label: 'หมู่ของฉัน' },
+>>>>>>> d458ac3624e4d97c2cac3185aabe93c4fda331c4
     { to: '/leader/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
   ],

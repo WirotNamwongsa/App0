@@ -164,6 +164,7 @@ export default function LeaderHome() {
           })}
         </Card>
       </div>
+<<<<<<< HEAD
 
       {/* Add Scout Modal */}
       {showAddModal && (
@@ -290,6 +291,8 @@ export default function LeaderHome() {
           </div>
         </div>
       )}
+=======
+>>>>>>> d458ac3624e4d97c2cac3185aabe93c4fda331c4
     </div>
   );
 }
