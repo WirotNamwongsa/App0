@@ -25,8 +25,8 @@ router.get('/', requireRole('ADMIN'), async (req, res) => {
   res.json(camps)
 })
 
-// GET /api/camps/my - Camp Manager, Leader ดูค่ายตัวเอง
-router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER'), async (req, res) => {
+// GET /api/camps/my - Camp Manager, Leader, Troop Leader ดูค่ายตัวเอง
+router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
   const campId = req.user.role === 'ADMIN' ? req.query.campId : req.user.campId
   if (!campId) throw createError(400, 'ไม่พบ campId')
   const camp = await prisma.camp.findUnique({

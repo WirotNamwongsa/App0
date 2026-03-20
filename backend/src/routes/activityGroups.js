@@ -32,8 +32,8 @@ const updateActivityGroupSchema = z.object({
   managerId: z.string().uuid().optional(),
 })
 
-// GET /api/activity-groups - ดูรายการกลุ่มกิจกรรม (Camp Manager, Admin, Leader)
-router.get('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER'), async (req, res) => {
+// GET /api/activity-groups - ดูรายการกลุ่มกิจกรรม (Camp Manager, Admin, Leader, Troop Leader)
+router.get('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
   const campId = req.user.role === 'ADMIN' ? req.query.campId : req.user.campId
   if (!campId) throw createError(400, 'ไม่พบ campId')
 
