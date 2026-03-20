@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Calendar, QrCode, User, Users, FileText, MapPin, ScanLine, LayoutDashboard, ClipboardList, LogOut, ChevronRight, Menu, UserPlus } from 'lucide-react'
+import { Home, Calendar, QrCode, User, Users, FileText, MapPin, ScanLine, LayoutDashboard, ClipboardList, LogOut, ChevronRight, Menu, UserPlus, Group } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import ThemeToggle from './ThemeToggle'
 import BottomNav from './BottomNav'
@@ -26,6 +26,7 @@ const navConfig = {
   CAMP_MANAGER: [
     { to: '/camp/dashboard', icon: Home, label: 'ภาพรวม' },
     { to: '/camp/structure', icon: Users, label: 'โครงสร้าง' },
+    { to: '/camp/activity-groups', icon: Group, label: 'จัดกลุ่มกิจกรรม' },
     { to: '/camp/schedule', icon: Calendar, label: 'ตาราง' },
     { to: '/camp/report', icon: FileText, label: 'รายงาน' },
   ],

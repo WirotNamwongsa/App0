@@ -1,13 +1,12 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
- 
-const isProd = window.location.hostname !== 'localhost'
-const BASE = isProd ? 'https://baby-tiger.onrender.com' : ''
- 
+
+const BASE = import.meta.env.VITE_API_URL || '/api'
+
 const api = axios.create({ 
-  baseURL: BASE + '/api'
+  baseURL: BASE
 })
- 
+
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`

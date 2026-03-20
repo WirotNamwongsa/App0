@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Calendar, QrCode, User, Users, FileText, MapPin, Settings, ScanLine, LayoutDashboard, ClipboardList } from 'lucide-react'
+import { Home, Calendar, QrCode, User, Users, FileText, MapPin, Settings, ScanLine, LayoutDashboard, ClipboardList, Group } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const navConfig = {
@@ -25,6 +25,7 @@ const navConfig = {
   CAMP_MANAGER: [
     { to: '/camp/dashboard', icon: Home, label: 'ภาพรวม' },
     { to: '/camp/structure', icon: Users, label: 'โครงสร้าง' },
+    { to: '/camp/activity-groups', icon: Group, label: 'จัดกลุ่ม' },
     { to: '/camp/schedule', icon: Calendar, label: 'ตาราง' },
     { to: '/camp/report', icon: FileText, label: 'รายงาน' },
   ],

@@ -119,22 +119,25 @@ model ActivityGroup {
   camp        Camp     @relation(fields: [campId], references: [id])
   manager     User?    @relation("ActivityGroupManager", fields: [managerId], references: [id])
   squads      Squad[]  @relation("SquadActivityGroup")
+  schedules   Schedule[]
 }
 
 model Schedule {
-  id         String   @id @default(uuid())
-  activityId String
-  campId     String
-  squadId    String?
-  date       DateTime
-  slot       String   // "MORNING" | "AFTERNOON" | "EVENING"
-  createdAt  DateTime @default(now())
+  id            String   @id @default(uuid())
+  activityId    String
+  campId        String
+  squadId       String?
+  activityGroupId String?
+  date          DateTime
+  slot          String   // "MORNING" | "AFTERNOON" | "EVENING"
+  createdAt     DateTime @default(now())
 
-  activity   Activity @relation(fields: [activityId], references: [id])
-  camp       Camp     @relation(fields: [campId], references: [id])
-  squad      Squad?   @relation(fields: [squadId], references: [id])
+  activity      Activity     @relation(fields: [activityId], references: [id])
+  camp          Camp         @relation(fields: [campId], references: [id])
+  squad         Squad?       @relation(fields: [squadId], references: [id])
+  activityGroup ActivityGroup? @relation(fields: [activityGroupId], references: [id])
 
-  @@unique([activityId, campId, date, slot])
+  @@unique([activityId, campId, squadId, date, slot])
 }
 
 model Attendance {
