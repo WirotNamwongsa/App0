@@ -1,7 +1,8 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const isProd = window.location.hostname !== 'localhost'
+const BASE = isProd ? 'https://baby-tiger.onrender.com' : 'http://localhost:4000/api'
 
 const api = axios.create({ 
   baseURL: BASE

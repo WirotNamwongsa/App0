@@ -63,6 +63,7 @@ export const campApi = {
   createTroop: (data) => api.post('/camp/troops', data),
   createPatrol: (troopId, data) => api.post(`/camp/troops/${troopId}/patrols`, data),
   getPatrol: (id) => api.get(`/camp/patrols/${id}`),
+  getSquad: (id) => api.get(`/camp/squads/${id}`),
   addScout: (data) => api.post('/camp/scouts', data),
   moveScout: (id, targetPatrolId) => api.patch(`/camp/scouts/${id}/move`, { targetPatrolId }),
   removeScout: (id) => api.delete(`/camp/scouts/${id}`),

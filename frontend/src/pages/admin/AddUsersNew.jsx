@@ -26,6 +26,9 @@ export default function AdminAddUsers() {
     email: '', 
     role: 'SCOUT',
     scoutCode: '',
+    prefix: '',
+    allergies: '',
+    congenitalDisease: '',
     campId: ''
   })
   const [errors, setErrors] = useState({})
@@ -55,10 +58,14 @@ export default function AdminAddUsers() {
       if (!form.nickname.trim()) e.nickname = 'กรุณากรอกชื่อเล่น'
       if (!form.school.trim()) e.school = 'กรุณากรอกโรงเรียน'
       if (!form.province) e.province = 'กรุณาเลือกจังหวัด'
+      if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
       if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
     } else if (form.role === 'TROOP_LEADER') {
       if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
       if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
+      if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
+      if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
+      if (!form.prefix) e.prefix = 'กรุณาเลือกคำนำหน้า'
       if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
     }
     return e
@@ -89,9 +96,15 @@ export default function AdminAddUsers() {
       userData.province = form.province
       userData.phone = form.phone
       userData.email = form.email
+      userData.allergies = form.allergies
+      userData.congenitalDisease = form.congenitalDisease
+      userData.prefix = form.prefix // Add prefix for scouts
     } else if (form.role === 'TROOP_LEADER') {
       userData.firstName = form.firstName
       userData.lastName = form.lastName
+      userData.school = form.school
+      userData.phone = form.phone
+      userData.prefix = form.prefix
     }
 
     createMutation.mutate(userData)
@@ -116,6 +129,9 @@ export default function AdminAddUsers() {
       email: '', 
       role: 'SCOUT',
       scoutCode: '',
+      prefix: '',
+      allergies: '',
+      congenitalDisease: '',
       campId: ''
     })
     setErrors({})
@@ -157,7 +173,7 @@ export default function AdminAddUsers() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ชื่อผู้ใช้ *
+              ชื่อผู้ใช้ 
             </label>
             <input
               type="text"
@@ -169,9 +185,61 @@ export default function AdminAddUsers() {
             {errors.username && <p className="text-xs text-red-500 mt-1 ml-1">{errors.username}</p>}
           </div>
 
+          {/* Password fields - moved after username */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                รหัสผ่าน 
+              </label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({...form, password: e.target.value})}
+                className={`input ${errors.password ? 'border-red-400 dark:border-red-500' : ''}`}
+                placeholder="กรอกรหัสผ่าน"
+              />
+              {errors.password && <p className="text-xs text-red-500 mt-1 ml-1">{errors.password}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                ยืนยันรหัสผ่าน 
+              </label>
+              <input
+                type="password"
+                value={form.confirmPassword}
+                onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
+                className={`input ${errors.confirmPassword ? 'border-red-400 dark:border-red-500' : ''}`}
+                placeholder="ยืนยันรหัสผ่าน"
+              />
+              {errors.confirmPassword && <p className="text-xs text-red-500 mt-1 ml-1">{errors.confirmPassword}</p>}
+            </div>
+          </div>
+
+          {/* Prefix field - shown for both TROOP_LEADER and SCOUT */}
+          {(form.role === 'TROOP_LEADER' || form.role === 'SCOUT') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                คำนำหน้า 
+              </label>
+              <select
+                value={form.prefix}
+                onChange={(e) => setForm({...form, prefix: e.target.value})}
+                className={`input ${errors.prefix ? 'border-red-400 dark:border-red-500' : ''}`}
+              >
+                <option value="">เลือกคำนำหน้า</option>
+                <option value="ด.ช.">ด.ช.</option>
+                <option value="ด.ญ.">ด.ญ.</option>
+                <option value="นาย">นาย</option>
+                <option value="นาง">นาง</option>
+                <option value="นางสาว">นางสาว</option>
+              </select>
+              {errors.prefix && <p className="text-xs text-red-500 mt-1 ml-1">{errors.prefix}</p>}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ชื่อจริง *
+              ชื่อจริง 
             </label>
             <input
               type="text"
@@ -185,7 +253,7 @@ export default function AdminAddUsers() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              นามสกุล *
+              นามสกุล 
             </label>
             <input
               type="text"
@@ -197,40 +265,25 @@ export default function AdminAddUsers() {
             {errors.lastName && <p className="text-xs text-red-500 mt-1 ml-1">{errors.lastName}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                รหัสผ่าน *
-              </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({...form, password: e.target.value})}
-                className={`input ${errors.password ? 'border-red-400 dark:border-red-500' : ''}`}
-                placeholder="กรอกรหัสผ่าน"
-              />
-              {errors.password && <p className="text-xs text-red-500 mt-1 ml-1">{errors.password}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                ยืนยันรหัสผ่าน *
-              </label>
-              <input
-                type="password"
-                value={form.confirmPassword}
-                onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
-                className={`input ${errors.confirmPassword ? 'border-red-400 dark:border-red-500' : ''}`}
-                placeholder="ยืนยันรหัสผ่าน"
-              />
-              {errors.confirmPassword && <p className="text-xs text-red-500 mt-1 ml-1">{errors.confirmPassword}</p>}
-            </div>
-          </div>
+          <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  ชื่อเล่น 
+                </label>
+                <input
+                  type="text"
+                  value={form.nickname}
+                  onChange={(e) => setForm({...form, nickname: e.target.value})}
+                  className={`input ${errors.nickname ? 'border-red-400 dark:border-red-500' : ''}`}
+                  placeholder="กรอกชื่อเล่น"
+                />
+                {errors.nickname && <p className="text-xs text-red-500 mt-1 ml-1">{errors.nickname}</p>}
+              </div>
 
           {form.role === 'SCOUT' && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  วันเกิด <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
+                  วันเกิด
                 </label>
                 <input
                   type="date"
@@ -243,35 +296,21 @@ export default function AdminAddUsers() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  ชื่อเล่น *
-                </label>
-                <input
-                  type="text"
-                  value={form.nickname}
-                  onChange={(e) => setForm({...form, nickname: e.target.value})}
-                  className={`input ${errors.nickname ? 'border-red-400 dark:border-red-500' : ''}`}
-                  placeholder="กรอกชื่อเล่น"
-                />
-                {errors.nickname && <p className="text-xs text-red-500 mt-1 ml-1">{errors.nickname}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  โรงเรียน *
+                  สถานศึกษา 
                 </label>
                 <input
                   type="text"
                   value={form.school}
                   onChange={(e) => setForm({...form, school: e.target.value})}
                   className={`input ${errors.school ? 'border-red-400 dark:border-red-500' : ''}`}
-                  placeholder="กรอกโรงเรียน"
+                  placeholder="กรอกสถานศึกษา"
                 />
                 {errors.school && <p className="text-xs text-red-500 mt-1 ml-1">{errors.school}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  จังหวัด *
+                  จังหวัด 
                 </label>
                 <select
                   value={form.province}
@@ -363,15 +402,16 @@ export default function AdminAddUsers() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    เบอร์โทรศัพท์ <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
+                    เบอร์โทรศัพท์ 
                   </label>
                   <input
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm({...form, phone: e.target.value})}
-                    className="input"
+                    className={`input ${errors.phone ? 'border-red-400 dark:border-red-500' : ''}`}
                     placeholder="กรอกเบอร์โทรศัพท์"
                   />
+                  {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -386,20 +426,70 @@ export default function AdminAddUsers() {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  การแพ้อาหารหรือสิ่งต่างๆ <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
+                </label>
+                <textarea
+                  value={form.allergies}
+                  onChange={(e) => setForm({...form, allergies: e.target.value})}
+                  className="input"
+                  rows={3}
+                  placeholder="กรอกข้อมูลการแพ้อาหารหรือสิ่งต่างๆ เช่น แพ้ถั่ว แพ้หอย แพ้ยา ฯลฯ"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  โรคประจำตัว <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
+                </label>
+                <textarea
+                  value={form.congenitalDisease}
+                  onChange={(e) => setForm({...form, congenitalDisease: e.target.value})}
+                  className="input"
+                  rows={3}
+                  placeholder="กรอกข้อมูลโรคประจำตัว เช่น โรคเบาหวาน โรคความดันโลหิตสูง หอบหืด ฯลฯ"
+                />
+              </div>
             </>
           )}
 
           {form.role === 'TROOP_LEADER' && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                สำหรับผู้กำกับ ใช้เพียงข้อมูลพื้นฐานเท่านั้น
-              </p>
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  สถานศึกษา 
+                </label>
+                <input
+                  type="text"
+                  value={form.school}
+                  onChange={(e) => setForm({...form, school: e.target.value})}
+                  className={`input ${errors.school ? 'border-red-400 dark:border-red-500' : ''}`}
+                  placeholder="กรอกสถานศึกษา"
+                />
+                {errors.school && <p className="text-xs text-red-500 mt-1 ml-1">{errors.school}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  เบอร์โทรศัพท์ 
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({...form, phone: e.target.value})}
+                  className={`input ${errors.phone ? 'border-red-400 dark:border-red-500' : ''}`}
+                  placeholder="กรอกเบอร์โทรศัพท์"
+                />
+                {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
+              </div>
+            </>
           )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ค่าย *
+              ค่าย 
             </label>
             <select
               value={form.campId}

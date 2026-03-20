@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import PageHeader from '../../components/PageHeader'
@@ -203,7 +202,10 @@ export default function CampStructure() {
                     {/* squad list */}
                     <div className="space-y-2">
                       {troop.squads?.map((squad) => (
-                        <div key={squad.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                        <div 
+                          key={squad.id} 
+                          className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800"
+                        >
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
                               <Users size={14} className="text-scout-500" />
@@ -280,17 +282,6 @@ export default function CampStructure() {
             <p className="text-sm text-gray-400 dark:text-gray-500">ติดต่อผู้ดูแลระบบเพื่อสร้างกองแรก</p>
           </div>
         )}
-      </div>
-      
-      {/* mobile logout */}
-      <div className="md:hidden mt-8">
-        <button 
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-red-100 dark:border-red-900/40 text-sm font-semibold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition active:scale-95"
-        >
-          <LogOut size={16} />
-          ออกจากระบบ
-        </button>
       </div>
 
       {/* ══ Stats Modal ═══════════════════════════════════════════════ */}

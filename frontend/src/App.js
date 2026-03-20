@@ -22,6 +22,7 @@ import LeaderScout from './pages/leader/LeaderScout';
 import CampDashboard from './pages/camp/CampDashboard';
 import CampStructure from './pages/camp/CampStructure';
 import CampPatrol from './pages/camp/CampPatrol';
+import CampSquad from './pages/camp/Squad';
 import CampSchedule from './pages/camp/CampSchedule';
 import CampReport from './pages/camp/CampReport';
 
@@ -75,6 +76,7 @@ const AppRoutes = () => {
       <Route path="/camp/dashboard" element={<ProtectedRoute roles={['CAMP_MANAGER', 'ADMIN']}><CampDashboard /></ProtectedRoute>} />
       <Route path="/camp/structure" element={<ProtectedRoute roles={['CAMP_MANAGER', 'ADMIN']}><CampStructure /></ProtectedRoute>} />
       <Route path="/camp/patrol/:id" element={<ProtectedRoute roles={['CAMP_MANAGER', 'ADMIN']}><CampPatrol /></ProtectedRoute>} />
+      <Route path="/camp/squad/:id" element={<ProtectedRoute roles={['CAMP_MANAGER', 'ADMIN']}><CampSquad /></ProtectedRoute>} />
       <Route path="/camp/schedule" element={<ProtectedRoute roles={['CAMP_MANAGER', 'ADMIN']}><CampSchedule /></ProtectedRoute>} />
       <Route path="/camp/report" element={<ProtectedRoute roles={['CAMP_MANAGER', 'ADMIN']}><CampReport /></ProtectedRoute>} />
 
