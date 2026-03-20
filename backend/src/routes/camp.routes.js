@@ -10,6 +10,7 @@ router.get('/structure', c.getStructure);
 router.post('/troops', c.createTroop);
 router.post('/troops/:troopId/patrols', c.createPatrol);
 router.get('/patrols/:patrolId', c.getPatrol);
+router.get('/squads/:squadId', c.getSquad);
 router.post('/scouts', c.addScout);
 router.patch('/scouts/:id/move', c.moveScout);
 router.delete('/scouts/:id', c.removeScout);

@@ -56,6 +56,12 @@ model User {
   password     String
   role         String
   name         String
+  firstName    String?
+  lastName     String?
+  phone        String?
+  email        String?
+  school       String?
+  prefix       String?  // คำนำหน้า (เช่น ด.ช., ด.ญ., นาย, นางสาว)
   campId       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -69,25 +75,27 @@ model User {
 }
 
 model Scout {
-  id         String   @id @default(uuid())
-  scoutCode  String   @unique
-  firstName  String
-  lastName   String
-  nickname   String?
-  birthDate  DateTime?
-  school     String?
-  province   String?
-  phone      String?
-  email      String?
-  squadId    String?
-  userId     String?  @unique
-  qrData     String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String   @id @default(uuid())
+  scoutCode        String   @unique
+  firstName        String
+  lastName         String
+  nickname         String?
+  birthDate        DateTime?
+  school           String?
+  province         String?
+  phone            String?
+  email            String?
+  allergies        String?  // การแพ้อาหารหรือสิ่งต่างๆ
+  congenitalDisease String? // โรคประจำตัว
+  squadId          String?
+  userId           String?  @unique
+  qrData           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  squad      Squad?   @relation(fields: [squadId], references: [id])
-  user       User?    @relation("ScoutUser", fields: [userId], references: [id])
-  attendances Attendance[]
+  squad            Squad?   @relation(fields: [squadId], references: [id])
+  user             User?    @relation("ScoutUser", fields: [userId], references: [id])
+  attendances      Attendance[]
 }
 
 model Activity {

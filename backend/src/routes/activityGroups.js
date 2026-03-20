@@ -8,6 +8,15 @@ import { z } from 'zod'
 const router = Router()
 router.use(authenticate)
 
+// Debug logging
+router.use((req, res, next) => {
+  console.log('=== ACTIVITY GROUPS ROUTE ===')
+  console.log('Method:', req.method)
+  console.log('Path:', req.path)
+  console.log('User:', req.user)
+  next()
+})
+
 // สร้าง schema สำหรับ validation
 const createActivityGroupSchema = z.object({
   name: z.string().min(1, 'ชื่อกลุ่มกิจกรรมต้องไม่ว่าง'),
@@ -23,8 +32,8 @@ const updateActivityGroupSchema = z.object({
   managerId: z.string().uuid().optional(),
 })
 
-// GET /api/activity-groups - ดูรายการกลุ่มกิจกรรม (Camp Manager, Admin)
-router.get('/', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+// GET /api/activity-groups - ดูรายการกลุ่มกิจกรรม (Camp Manager, Admin, Leader)
+router.get('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER'), async (req, res) => {
   const campId = req.user.role === 'ADMIN' ? req.query.campId : req.user.campId
   if (!campId) throw createError(400, 'ไม่พบ campId')
 

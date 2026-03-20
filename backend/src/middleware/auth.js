@@ -14,6 +14,11 @@ export function authenticate(req, res, next) {
 
 export function requireRole(...roles) {
   return (req, res, next) => {
+    console.log('=== AUTH DEBUG ===')
+    console.log('User role:', req.user.role)
+    console.log('Required roles:', roles)
+    console.log('Has access:', roles.includes(req.user.role))
+    
     if (!roles.includes(req.user.role)) {
       throw createError(403, 'ไม่มีสิทธิ์เข้าถึง')
     }

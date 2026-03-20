@@ -126,7 +126,26 @@ const getPatrol = async (req, res, next) => {
   }
 };
 
-// POST /api/camp/scouts — เพิ่มลูกเสือใหม่ในหมู่
+// GET /api/camp/squads/:squadId — รายละเอียดหมู่
+const getSquad = async (req, res, next) => {
+  try {
+    const campId = getCampId(req);
+    const squad = await prisma.squad.findFirst({
+      where: { id: req.params.squadId, troop: { campId } },
+      include: {
+        troop: true,
+        leader: { select: { id: true, displayName: true, username: true } },
+        scouts: { include: { attendances: { include: { schedule: { include: { activity: true } } } } } },
+      },
+    });
+    if (!squad) return res.status(404).json({ error: 'ไม่พบหมู่' });
+    res.json(squad);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/camp/scouts — เพิ่มลูกเสือใหมู่ในหมู่
 const addScout = async (req, res, next) => {
   try {
     const campId = getCampId(req);
@@ -253,4 +272,4 @@ const getReport = async (req, res, next) => {
   }
 };
 
-module.exports = { getDashboard, getStructure, createTroop, createPatrol, getPatrol, addScout, moveScout, removeScout, getSchedule, createSchedule, getReport };
+module.exports = { getDashboard, getStructure, createTroop, createPatrol, getPatrol, getSquad, addScout, moveScout, removeScout, getSchedule, createSchedule, getReport };

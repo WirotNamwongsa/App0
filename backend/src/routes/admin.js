@@ -18,7 +18,7 @@ router.get('/accounts', async (req, res) => {
 
 // POST /api/admin/accounts
 router.post('/accounts', async (req, res) => {
-  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email } = req.body
+  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email, prefix, allergies, congenitalDisease, birthDate } = req.body
 
   // Validate required fields
   if (!username || !password || !role || !name) {
@@ -40,7 +40,19 @@ router.post('/accounts', async (req, res) => {
 
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
-    data: { username, password: hashed, role, name, campId: campId || null }
+    data: { 
+      username, 
+      password: hashed, 
+      role, 
+      name, 
+      campId: campId || null,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      phone: phone || null,
+      email: email || null,
+      school: school || null,
+      prefix: prefix || null
+    }
   })
 
   // ถ้า role เป็น SCOUT สร้าง Scout record อัตโนมัติ
@@ -60,7 +72,10 @@ router.post('/accounts', async (req, res) => {
         phone: phone || null,
         email: email || null,
         squadId: squadId || null,
-        userId: user.id
+        userId: user.id,
+        birthDate: birthDate ? new Date(birthDate) : null,
+        allergies: allergies || null,
+        congenitalDisease: congenitalDisease || null
       }
     })
   }
@@ -79,7 +94,7 @@ router.post('/accounts', async (req, res) => {
 
 // PATCH /api/admin/accounts/:id
 router.patch('/accounts/:id', async (req, res) => {
-  const { name, role, campId, activityId, password, squadId } = req.body
+  const { name, role, campId, activityId, password, squadId, firstName, lastName, phone, email, school, prefix, allergies, congenitalDisease, birthDate } = req.body
 
   const data = { name, role, campId: campId || null }
   if (password) data.password = await bcrypt.hash(password, 10)
