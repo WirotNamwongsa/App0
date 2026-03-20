@@ -120,17 +120,17 @@ export default function LoginPage() {
           </p>
           <div className="space-y-1">
             {[
-              { user: 'admin',         pass: 'admin123',   label: 'Admin' },
-              { user: 'campmanager1',  pass: 'camp123',    label: 'ผู้ดูแลค่าย 1' },
-              { user: 'campmanager2',  pass: 'camp123',    label: 'ผู้ดูแลค่าย 2' },
-              { user: 'director1',     pass: 'password123', label: 'ผู้กำกับ 1' },
-              { user: 'director2',     pass: 'password123', label: 'ผู้กำกับ 2' },
-              { user: 'director3',     pass: 'password123', label: 'ผู้กำกับ 3' },
-              { user: 'staff1',        pass: 'staff123',   label: 'เจ้าหน้าที่ 1' },
-              { user: 'staff2',        pass: 'staff123',   label: 'เจ้าหน้าที่ 2' },
-              { user: 'scout001',      pass: 'scout123',   label: 'ลูกเสือ 1' },
-              { user: 'scout002',      pass: 'scout123',   label: 'ลูกเสือ 2' },
-              { user: 'scout003',      pass: 'scout123',   label: 'ลูกเสือ 3' },
+              { user: 'admin',         pass: 'admin1234',   label: 'Admin' },
+              { user: 'campmanager1',  pass: 'camp1234',    label: 'ผู้ดูแลค่าย 1' },
+              { user: 'campmanager2',  pass: 'camp1234',    label: 'ผู้ดูแลค่าย 2' },
+              { user: 'director1',     pass: 'password1234', label: 'ผู้กำกับ 1' },
+              { user: 'director2',     pass: 'password1234', label: 'ผู้กำกับ 2' },
+              { user: 'director3',     pass: 'password1234', label: 'ผู้กำกับ 3' },
+              { user: 'staff1',        pass: 'staff1234',   label: 'เจ้าหน้าที่ 1' },
+              { user: 'staff2',        pass: 'staff1234',   label: 'เจ้าหน้าที่ 2' },
+              { user: 'scout001',      pass: 'scout1234',   label: 'ลูกเสือ 1' },
+              { user: 'scout002',      pass: 'scout1234',   label: 'ลูกเสือ 2' },
+              { user: 'scout003',      pass: 'scout1234',   label: 'ลูกเสือ 3' },
             ].map(a => (
               <button key={a.user} type="button"
                 onClick={() => setForm({ username: a.user, password: a.pass })}

@@ -29,9 +29,14 @@ async function main() {
   // สร้าง Camp Manager
   const campMgrPw = await bcrypt.hash('camp1234', 10)
   await prisma.user.upsert({
-    where: { username: 'camp_a' },
+    where: { username: 'campmanager1' },
     update: {},
-    create: { username: 'camp_a', password: campMgrPw, role: 'CAMP_MANAGER', name: 'ผู้ดูแลค่าย A', campId: campA.id }
+    create: { username: 'campmanager1', password: campMgrPw, role: 'CAMP_MANAGER', name: 'ผู้ดูแลค่าย 1', campId: campA.id }
+  })
+  await prisma.user.upsert({
+    where: { username: 'campmanager2' },
+    update: {},
+    create: { username: 'campmanager2', password: campMgrPw, role: 'CAMP_MANAGER', name: 'ผู้ดูแลค่าย 2', campId: campB.id }
   })
 
   // สร้างกิจกรรม
@@ -54,12 +59,17 @@ async function main() {
     await prisma.activity.upsert({ where: { id: act.id }, update: {}, create: act })
   }
 
-  // สร้าง Staff สำหรับ act-1
+  // สร้าง Staff
   const staffPw = await bcrypt.hash('staff1234', 10)
   const staff1 = await prisma.user.upsert({
-    where: { username: 'staff_skill' },
+    where: { username: 'staff1' },
     update: {},
-    create: { username: 'staff_skill', password: staffPw, role: 'STAFF', name: 'ผู้จัดกิจกรรมทักษะลูกเสือ' }
+    create: { username: 'staff1', password: staffPw, role: 'STAFF', name: 'เจ้าหน้าที่ 1' }
+  })
+  const staff2 = await prisma.user.upsert({
+    where: { username: 'staff2' },
+    update: {},
+    create: { username: 'staff2', password: staffPw, role: 'STAFF', name: 'เจ้าหน้าที่ 2' }
   })
   await prisma.activity.update({ where: { id: 'act-1' }, data: { staffId: staff1.id } })
 
@@ -75,35 +85,51 @@ async function main() {
     create: { id: 'squad-1', name: 'หมู่ 1', number: 1, troopId: troop1.id }
   })
 
-  // สร้าง Leader
-  const leaderPw = await bcrypt.hash('leader1234', 10)
-  const leader1 = await prisma.user.upsert({
-    where: { username: 'leader_1_1' },
+  // สร้าง Director (ผู้กำกับ)
+  const directorPw = await bcrypt.hash('password1234', 10)
+  const director1 = await prisma.user.upsert({
+    where: { username: 'director1' },
     update: {},
-    create: { username: 'leader_1_1', password: leaderPw, role: 'TROOP_LEADER', name: 'ผู้กำกับหมู่ 1 กอง 1', campId: campA.id }
+    create: { username: 'director1', password: directorPw, role: 'TROOP_LEADER', name: 'ผู้กำกับ 1', campId: campA.id }
   })
-  await prisma.squad.update({ where: { id: 'squad-1' }, data: { leaderId: leader1.id } })
+  const director2 = await prisma.user.upsert({
+    where: { username: 'director2' },
+    update: {},
+    create: { username: 'director2', password: directorPw, role: 'TROOP_LEADER', name: 'ผู้กำกับ 2', campId: campA.id }
+  })
+  const director3 = await prisma.user.upsert({
+    where: { username: 'director3' },
+    update: {},
+    create: { username: 'director3', password: directorPw, role: 'TROOP_LEADER', name: 'ผู้กำกับ 3', campId: campB.id }
+  })
+  await prisma.squad.update({ where: { id: 'squad-1' }, data: { leaderId: director1.id } })
 
   // สร้างลูกเสือตัวอย่าง + user account
   const scoutPw = await bcrypt.hash('scout1234', 10)
-  for (let i = 1; i <= 5; i++) {
+  const scoutData = [
+    { code: 'SC001', username: 'scout001', firstName: 'สมชาย1', nickname: 'น้อง1' },
+    { code: 'SC002', username: 'scout002', firstName: 'สมชาย2', nickname: 'น้อง2' },
+    { code: 'SC003', username: 'scout003', firstName: 'สมชาย3', nickname: 'น้อง3' }
+  ]
+  
+  for (const scout of scoutData) {
     const sc = await prisma.scout.upsert({
-      where: { scoutCode: `SC100${i}` },
+      where: { scoutCode: scout.code },
       update: {},
       create: {
-        scoutCode: `SC100${i}`,
-        firstName: `สมชาย${i}`,
-        lastName: `ใจดี`,
-        nickname: `น้อง${i}`,
+        scoutCode: scout.code,
+        firstName: scout.firstName,
+        lastName: 'ใจดี',
+        nickname: scout.nickname,
         school: 'วิทยาลัยเทคนิคเชียงใหม่',
         province: 'เชียงใหม่',
         squadId: squad1.id
       }
     })
     const scUser = await prisma.user.upsert({
-      where: { username: `scout${i}` },
+      where: { username: scout.username },
       update: {},
-      create: { username: `scout${i}`, password: scoutPw, role: 'SCOUT', name: `สมชาย${i} ใจดี`, campId: campA.id }
+      create: { username: scout.username, password: scoutPw, role: 'SCOUT', name: `${scout.firstName} ใจดี`, campId: campA.id }
     })
     await prisma.scout.update({ where: { id: sc.id }, data: { userId: scUser.id } })
   }
@@ -111,10 +137,16 @@ async function main() {
   console.log('✅ Seed complete!')
   console.log('📋 Test accounts:')
   console.log('  admin / admin1234')
-  console.log('  camp_a / camp1234')
-  console.log('  leader_1_1 / leader1234')
-  console.log('  staff_skill / staff1234')
-  console.log('  scout1 / scout1234')
+  console.log('  campmanager1 / camp1234')
+  console.log('  campmanager2 / camp1234')
+  console.log('  director1 / password1234')
+  console.log('  director2 / password1234')
+  console.log('  director3 / password1234')
+  console.log('  staff1 / staff1234')
+  console.log('  staff2 / staff1234')
+  console.log('  scout001 / scout1234')
+  console.log('  scout002 / scout1234')
+  console.log('  scout003 / scout1234')
 
   // สร้างตารางกิจกรรม
   console.log('📅 Creating schedules...')
