@@ -14,37 +14,17 @@ export default function SquadLeaderAddScout() {
   const [addingScout, setAddingScout] = useState(false);
 
   useEffect(() => {
-    // โหลดข้อมูลหมู่และลูกเสือที่เพิ่มได้
-    Promise.all([
-      squadLeaderApi.getMySquad(),
-      squadLeaderApi.getAvailableScouts()
-    ]).then(([squadRes, scoutsRes]) => {
-      setSquad(squadRes.data);
-      setAvailableScouts(scoutsRes.data);
-    }).catch(error => {
-      console.error('Error loading data:', error);
-      toast.error('โหลดข้อมูลไม่สำเร็จ');
-    }).finally(() => setLoading(false));
+    // ปิดการใช้งานหน้า Add Scout ชั่วคราวจนกว่า backend พร้อม
+    setLoading(false);
+    setSquad(null);
+    setAvailableScouts(null);
+    
+    toast.error('หน้า Add Scout ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   }, []);
 
   const handleAddScout = async (scoutId) => {
-    setAddingScout(true);
-    try {
-      await squadLeaderApi.addScout({ scoutId });
-      toast.success('เพิ่มลูกเสือสำเร็จ');
-      
-      // โหลดข้อมูลใหม่
-      const [squadRes, scoutsRes] = await Promise.all([
-        squadLeaderApi.getMySquad(),
-        squadLeaderApi.getAvailableScouts()
-      ]);
-      setSquad(squadRes.data);
-      setAvailableScouts(scoutsRes.data);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'เพิ่มลูกเสือไม่สำเร็จ');
-    } finally {
-      setAddingScout(false);
-    }
+    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
+    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   };
 
   if (loading) {

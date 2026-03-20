@@ -44,6 +44,7 @@ import AdminAccounts from './pages/admin/Accounts'
 import AdminCamps from './pages/admin/Camps'
 import AdminAudit from './pages/admin/Audit'
 import AdminImport from './pages/admin/Import'
+import AdminAddUsers from './pages/admin/AddUsersNew'
 
 function RequireAuth({ children, roles }) {
   const { user } = useAuthStore()
@@ -108,6 +109,7 @@ export default function App() {
       <Route path="/admin/activities" element={<RequireAuth roles={['ADMIN']}><AdminActivities /></RequireAuth>} />
       <Route path="/admin/accounts" element={<RequireAuth roles={['ADMIN']}><AdminAccounts /></RequireAuth>} />
       <Route path="/admin/camps" element={<RequireAuth roles={['ADMIN']}><AdminCamps /></RequireAuth>} />
+      <Route path="/admin/add-users" element={<RequireAuth roles={['ADMIN']}><AdminAddUsers /></RequireAuth>} />
       <Route path="/admin/audit" element={<RequireAuth roles={['ADMIN']}><AdminAudit /></RequireAuth>} />
       <Route path="/admin/import" element={<RequireAuth roles={['ADMIN']}><AdminImport /></RequireAuth>} />
     </Routes>

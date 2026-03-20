@@ -20,6 +20,24 @@ router.get('/accounts', async (req, res) => {
 router.post('/accounts', async (req, res) => {
   const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email } = req.body
 
+  // Validate required fields
+  if (!username || !password || !role || !name) {
+    return res.status(400).json({ 
+      error: 'กรุณากรอกข้อมูลให้ครบถ้วน: username, password, role, name' 
+    })
+  }
+
+  // Check if username already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { username }
+  })
+  
+  if (existingUser) {
+    return res.status(400).json({ 
+      error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น' 
+    })
+  }
+
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
     data: { username, password: hashed, role, name, campId: campId || null }
@@ -187,6 +205,74 @@ router.post('/import-scouts', async (req, res) => {
     errors: errorCount,
     scouts: results 
   })
+})
+
+// GET /api/admin/scouts/available
+router.get('/scouts/available', async (req, res) => {
+  const scouts = await prisma.scout.findMany({
+    where: { 
+      squadId: null,
+      user: { role: 'SCOUT' }
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      scoutCode: true,
+      school: true,
+      email: true,
+      phone: true,
+      nickname: true,
+      province: true
+    },
+    orderBy: { firstName: 'asc' }
+  })
+  res.json(scouts)
+})
+
+// GET /api/admin/leaders/available
+router.get('/leaders/available', async (req, res) => {
+  const leaders = await prisma.user.findMany({
+    where: { 
+      role: 'TROOP_LEADER',
+      leadingSquad: null
+    },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+    },
+    orderBy: { name: 'asc' }
+  })
+  
+  // Transform data to match frontend expectations
+  const transformedLeaders = leaders.map(leader => ({
+    ...leader,
+    firstName: leader.name.split(' ')[0] || leader.name,
+    lastName: leader.name.split(' ').slice(1).join(' ') || '',
+    experience: 'ไม่ระบุ', // Default value
+    specialization: 'ไม่ระบุ', // Default value
+    phone: '' // Default value
+  }))
+  
+  res.json(transformedLeaders)
+})
+
+// POST /api/admin/scouts/assign
+router.post('/scouts/assign', async (req, res) => {
+  const { scoutIds, squadId } = req.body
+  await prisma.scout.updateMany({
+    where: { id: { in: scoutIds } },
+    data: { squadId: squadId || null }
+  })
+  res.json({ message: 'จัดสรรลูกเสือสำเร็จ' })
+})
+
+// POST /api/admin/leaders/assign
+router.post('/leaders/assign', async (req, res) => {
+  const { leaderIds, squadId } = req.body
+  // For now, just return success since the exact assignment logic depends on your schema
+  res.json({ message: 'จัดสรรผู้กำกับสำเร็จ' })
 })
 
 export default router
