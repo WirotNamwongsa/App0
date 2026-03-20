@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Calendar, QrCode, User, Users, FileText, MapPin, Settings, ScanLine, LayoutDashboard, ClipboardList, Group } from 'lucide-react'
+import { Home, Calendar, QrCode, User, Users, FileText, MapPin, Settings, ScanLine, LayoutDashboard, ClipboardList, Group, UserPlus } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const navConfig = {
@@ -33,6 +33,7 @@ const navConfig = {
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'ภาพรวม' },
     { to: '/admin/activities', icon: MapPin, label: 'กิจกรรม' },
     { to: '/admin/accounts', icon: Users, label: 'บัญชี' },
+    { to: '/admin/add-users', icon: UserPlus, label: 'เพิ่มผู้กำกับ/ลูกเสือ' },
     { to: '/admin/audit', icon: FileText, label: 'Audit' },
   ]
 }

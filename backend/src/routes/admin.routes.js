@@ -17,4 +17,8 @@ router.delete('/accounts/:id', c.deleteAccount);
 router.get('/audit', c.getAuditLog);
 router.post('/import', c.importScouts);
 
+// Add missing endpoints for available scouts and leaders
+router.get('/scouts/available', c.getAvailableScouts);
+router.get('/leaders/available', c.getAvailableLeaders);
+
 module.exports = router;

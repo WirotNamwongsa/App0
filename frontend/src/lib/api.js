@@ -12,7 +12,7 @@ api.interceptors.request.use(config => {
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
- 
+
 api.interceptors.response.use(
   r => r.data,
   err => {
@@ -25,6 +25,5 @@ api.interceptors.response.use(
     return Promise.reject(err)
   }
 )
-
 
 export default api

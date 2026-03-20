@@ -16,72 +16,32 @@ export default function SquadLeaderHome() {
   const [addingScout, setAddingScout] = useState(false);
 
   useEffect(() => {
-    squadLeaderApi.getMySquad().then(r => {
-      console.log('Squad data:', r.data);
-      setSquad(r.data);
-    }).catch(error => {
-      console.error('Squad error:', error);
-    }).finally(() => setLoading(false));
-    // เริ่มโหลดข้อมูลลูกเสือที่เพิ่มได้ตั้งแต่แรก
-    loadAvailableScouts();
+    // ปิดการใช้งานหน้า Squad Leader ชั่วคราวจนกว่า backend พร้อม
+    setLoading(false);
+    setSquad(null);
+    setAvailableScouts(null);
+    
+    toast.error('หน้า Squad Leader ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   }, []);
 
   const loadAvailableScouts = async () => {
-    setLoadingScouts(true);
-    try {
-      const response = await squadLeaderApi.getAvailableScouts();
-      setAvailableScouts(response.data);
-    } catch (error) {
-      toast.error('ไม่สามารถโหลดรายชื่อลูกเสือได้');
-    } finally {
-      setLoadingScouts(false);
-    }
+    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
+    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   };
 
   const handleAddScout = async (scoutId) => {
-    setAddingScout(true);
-    try {
-      await squadLeaderApi.addScout({ scoutId });
-      toast.success('เพิ่มลูกเสือสำเร็จ');
-      
-      // โหลดข้อมูลหมู่ใหม่
-      const squadResponse = await squadLeaderApi.getMySquad();
-      setSquad(squadResponse.data);
-      
-      // อัปเดตรายการลูกเสือที่เพิ่มได้
-      if (availableScouts) {
-        setAvailableScouts(prev => ({
-          ...prev,
-          scouts: prev.scouts.filter(s => s.id !== scoutId),
-          currentCount: prev.currentCount + 1,
-          canAdd: prev.currentCount + 1 < 8
-        }));
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'เพิ่มลูกเสือไม่สำเร็จ');
-    } finally {
-      setAddingScout(false);
-    }
+    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
+    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   };
 
   const handleRemoveScout = async (scoutId) => {
-    if (!confirm('คุณต้องการนำลูกเสือคนนี้ออกจากหมู่หรือไม่?')) return;
-    
-    try {
-      await squadLeaderApi.removeScout(scoutId);
-      toast.success('นำลูกเสือออกจากหมู่สำเร็จ');
-      
-      // โหลดข้อมูลหมู่ใหม่
-      const squadResponse = await squadLeaderApi.getMySquad();
-      setSquad(squadResponse.data);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'นำลูกเสือออกไม่สำเร็จ');
-    }
+    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
+    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   };
 
   const openAddModal = () => {
-    setShowAddModal(true);
-    loadAvailableScouts();
+    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
+    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
   };
 
   if (loading) return (

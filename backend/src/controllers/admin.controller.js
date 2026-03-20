@@ -227,4 +227,55 @@ const getReport = async (req, res, next) => {
   }
 };
 
-module.exports = { getDashboard, getActivities, createActivity, updateActivity, getAccounts, createAccount, updateAccount, deleteAccount, getAuditLog, importScouts, getReport };
+// GET /api/admin/scouts/available - ดึงลูกเสือที่ยังไม่มีหมู่
+const getAvailableScouts = async (req, res, next) => {
+  try {
+    // หาลูกเสือที่ยังไม่มีหมู่ (squadId is null)
+    const availableScouts = await prisma.scout.findMany({
+      where: { squadId: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        scoutCode: true,
+        school: true,
+        province: true,
+        phone: true,
+        email: true,
+        birthDate: true
+      },
+      orderBy: { firstName: 'asc' }
+    });
+
+    res.json(availableScouts);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/admin/leaders/available - ดึงผู้กำกับที่ยังไม่มี patrol
+const getAvailableLeaders = async (req, res, next) => {
+  try {
+    // หาผู้กำกับที่ยังไม่ได้รับผิดชอบ patrol (troopId is null)
+    const availableLeaders = await prisma.user.findMany({
+      where: { 
+        role: 'TROOP_LEADER',
+        troopId: null
+      },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        phone: true
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    res.json(availableLeaders);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getDashboard, getActivities, createActivity, updateActivity, getAccounts, createAccount, updateAccount, deleteAccount, getAuditLog, importScouts, getReport, getAvailableScouts, getAvailableLeaders };
