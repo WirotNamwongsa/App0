@@ -30,11 +30,26 @@ export default function AdminAddUsers() {
     allergies: '',
     congenitalDisease: '',
     campId: ''
+
   })
   const [errors, setErrors] = useState({})
 
   // Fetch camps data only
   const { data: camps = [] } = useQuery('camps', () => api.get('/camps'))
+  
+  // Fetch troop leaders data
+ 
+  // Fetch squads when camp is selected
+  const { data: squads = [] } = useQuery(
+    ['squads', form.campId],
+    () => form.campId ? api.get(`/camps/${form.campId}/squads`) : Promise.resolve([]),
+    {
+      enabled: !!form.campId,
+      onError: () => {
+        toast.error('ไม่สามารถโหลดข้อมูลหมู่ได้')
+      }
+    }
+  )
 
   const createMutation = useMutation(d => api.post('/admin/accounts', d), {
     onSuccess: () => { 
@@ -67,6 +82,7 @@ export default function AdminAddUsers() {
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
       if (!form.prefix) e.prefix = 'กรุณาเลือกคำนำหน้า'
       if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
+      if (!form.squadId) e.squadId = 'กรุณาเลือกหมู่'
     }
     return e
   }
@@ -102,9 +118,11 @@ export default function AdminAddUsers() {
     } else if (form.role === 'TROOP_LEADER') {
       userData.firstName = form.firstName
       userData.lastName = form.lastName
+
       userData.school = form.school
       userData.phone = form.phone
       userData.prefix = form.prefix
+
     }
 
     createMutation.mutate(userData)
@@ -129,6 +147,7 @@ export default function AdminAddUsers() {
       email: '', 
       role: 'SCOUT',
       scoutCode: '',
+
       prefix: '',
       allergies: '',
       congenitalDisease: '',
@@ -493,7 +512,7 @@ export default function AdminAddUsers() {
             </label>
             <select
               value={form.campId}
-              onChange={(e) => setForm({...form, campId: e.target.value})}
+              onChange={(e) => setForm({...form, campId: e.target.value, squadId: ''})}
               className={`input ${errors.campId ? 'border-red-400 dark:border-red-500' : ''}`}
             >
               <option value="">เลือกค่าย</option>
@@ -503,6 +522,27 @@ export default function AdminAddUsers() {
             </select>
             {errors.campId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.campId}</p>}
           </div>
+
+          {form.campId && form.role === 'TROOP_LEADER' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                หมู่ *
+              </label>
+              <select
+                value={form.squadId}
+                onChange={(e) => setForm({...form, squadId: e.target.value})}
+                className={`input ${errors.squadId ? 'border-red-400 dark:border-red-500' : ''}`}
+              >
+                <option value="">เลือกหมู่</option>
+                {squads.map(squad => (
+                  <option key={squad.id} value={squad.id}>
+                    {squad.troop.name} - {squad.name} {squad.leader ? `(${squad.leader.name})` : '(ยังไม่มีผู้กำกับ)'}
+                  </option>
+                ))}
+              </select>
+              {errors.squadId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.squadId}</p>}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button onClick={submit} disabled={createMutation.isLoading} className="flex-1 btn-primary">

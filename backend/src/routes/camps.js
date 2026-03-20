@@ -229,4 +229,27 @@ router.get('/:campId/scouts', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, 
   res.json(scouts)
 })
 
+// GET /api/camps/:campId/squads - ดูหมู่ทั้งหมดในค่าย
+router.get('/:campId/squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+  const squads = await prisma.squad.findMany({
+    where: { troop: { campId: req.params.campId } },
+    include: {
+      troop: {
+        select: { id: true, name: true, number: true }
+      },
+      leader: {
+        select: { id: true, name: true }
+      },
+      _count: {
+        select: { scouts: true }
+      }
+    },
+    orderBy: [
+      { troop: { number: 'asc' } },
+      { number: 'asc' }
+    ]
+  })
+  res.json(squads)
+})
+
 export default router

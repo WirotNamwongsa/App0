@@ -33,9 +33,9 @@ const navConfig = {
   ADMIN: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'ภาพรวม' },
     { to: '/admin/activities', icon: MapPin, label: 'กิจกรรม' },
+     { to: '/admin/add-users', icon: UserPlus, label: 'เพิ่มผู้กำกับและลูกเสือ' },
     { to: '/admin/accounts', icon: Users, label: 'บัญชี' },
     { to: '/admin/camps', icon: FileText, label: 'ค่าย' },
-    { to: '/admin/add-users', icon: UserPlus, label: 'เพิ่มผู้กำกับและลูกเสือ' },
     { to: '/admin/audit', icon: ClipboardList, label: 'Audit' },
   ],
 }

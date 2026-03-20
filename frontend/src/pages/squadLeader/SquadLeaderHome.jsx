@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { squadLeaderApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
-import { Plus, Users, School, Shield, X, UserPlus } from 'lucide-react';
+import { Plus, Users, School, X, UserPlus } from 'lucide-react';
 
 export default function SquadLeaderHome() {
   const navigate = useNavigate();
@@ -16,32 +16,61 @@ export default function SquadLeaderHome() {
   const [addingScout, setAddingScout] = useState(false);
 
   useEffect(() => {
-    // ปิดการใช้งานหน้า Squad Leader ชั่วคราวจนกว่า backend พร้อม
-    setLoading(false);
-    setSquad(null);
-    setAvailableScouts(null);
-    
-    toast.error('หน้า Squad Leader ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    loadSquad();
   }, []);
 
+  const loadSquad = async () => {
+    try {
+      setLoading(true);
+      const data = await squadLeaderApi.getMySquad();
+      setSquad(data);
+    } catch (err) {
+      toast.error('โหลดข้อมูลหมู่ไม่สำเร็จ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadAvailableScouts = async () => {
-    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
-    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    try {
+      setLoadingScouts(true);
+      const data = await squadLeaderApi.getAvailableScouts();
+      setAvailableScouts(data);
+    } catch (err) {
+      toast.error('โหลดรายชื่อลูกเสือไม่สำเร็จ');
+    } finally {
+      setLoadingScouts(false);
+    }
   };
 
   const handleAddScout = async (scoutId) => {
-    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
-    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    try {
+      setAddingScout(true);
+      await squadLeaderApi.addScout(scoutId);
+      toast.success('เพิ่มลูกเสือสำเร็จ');
+      setShowAddModal(false);
+      loadSquad();
+      loadAvailableScouts();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'เพิ่มลูกเสือไม่สำเร็จ');
+    } finally {
+      setAddingScout(false);
+    }
   };
 
   const handleRemoveScout = async (scoutId) => {
-    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
-    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    try {
+      await squadLeaderApi.removeScout(scoutId);
+      toast.success('นำลูกเสือออกจากหมู่สำเร็จ');
+      loadSquad();
+    } catch (err) {
+      toast.error('ไม่สามารถนำลูกเสือออกได้');
+    }
   };
 
   const openAddModal = () => {
-    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
-    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    setShowAddModal(true);
+    loadAvailableScouts();
   };
 
   if (loading) return (
@@ -79,7 +108,6 @@ export default function SquadLeaderHome() {
 
       {/* Action Buttons */}
       <div className="flex gap-3 mb-5">
-        {/* Quick Add Button */}
         {availableScouts?.canAdd !== false && (
           <button
             onClick={openAddModal}
@@ -89,8 +117,6 @@ export default function SquadLeaderHome() {
             <span>เพิ่มด่วน ({squad?.scouts?.length || 0}/8)</span>
           </button>
         )}
-        
-        {/* Go to Add Scout Page */}
         <button
           onClick={() => navigate('/squad-leader/add-scout')}
           className={availableScouts?.canAdd !== false ? "flex-1 btn-secondary flex items-center justify-center gap-2 py-3" : "flex-1 btn-primary flex items-center justify-center gap-2 py-3"}
@@ -103,7 +129,7 @@ export default function SquadLeaderHome() {
       {/* Scout List */}
       <div className="card">
         <h2 className="text-sm font-semibold text-scout-800 dark:text-scout-200 mb-4">
-          สมาชิกในหมู่ ({squad?.scouts?.length} คน)
+          สมาชิกในหมู่ ({squad?.scouts?.length || 0} คน)
         </h2>
         <div className="space-y-2">
           {squad?.scouts?.map(scout => (
@@ -168,8 +194,8 @@ export default function SquadLeaderHome() {
                 <div className="text-center py-8">
                   <School size={40} className="text-gray-300 mx-auto mb-3" />
                   <p className="text-sm text-gray-400">
-                    {availableScouts?.canAdd === false 
-                      ? 'หมู่เต็มแล้ว (8 คน)' 
+                    {availableScouts?.canAdd === false
+                      ? 'หมู่เต็มแล้ว (8 คน)'
                       : 'ไม่มีลูกเสือที่สามารถเพิ่มได้'}
                   </p>
                 </div>

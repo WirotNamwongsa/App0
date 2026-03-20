@@ -1,22 +1,14 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useQuery } from 'react-query'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
-import PageHeader from '../../components/PageHeader'
-import toast from 'react-hot-toast'
-import { Trash2, Plus, Calendar, Clock, Users, X, Pencil } from 'lucide-react'
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants & sub-components OUTSIDE main component (prevents focus loss)
-// ─────────────────────────────────────────────────────────────────────────────
+import { useState } from 'react'
+import { Calendar, Clock, Users, X } from 'lucide-react'
 
 const SLOTS = [
   { value: 'MORNING', label: 'เช้า' },
   { value: 'AFTERNOON', label: 'บ่าย' },
   { value: 'EVENING', label: 'เย็น' },
 ]
-
-const INPUT_CLS = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 bg-gray-50 dark:bg-scout-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
 
 function Modal({ children, onClose }) {
   return (
@@ -43,108 +35,15 @@ function ModalHeader({ title, onClose }) {
   )
 }
 
-const EMPTY_FORM = { activityId: '', date: '', slot: 'MORNING', squadIds: [], activityGroupId: '' }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function CampSchedule() {
   const { user } = useAuthStore()
-  const qc = useQueryClient()
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null) // null = create mode, id = edit mode
   const [viewingSchedule, setViewingSchedule] = useState(null)
 
   const { data: activities = [] } = useQuery('activities', () => api.get('/activities'))
   const { data: activityGroups = [] } = useQuery('activity-groups', () => api.get('/activity-groups'))
-  const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
   const { data: schedules = [] } = useQuery(['schedules', user.campId], () =>
     api.get(`/schedules?campId=${user.campId}`)
   )
-
-  const addMutation = useMutation(
-    data => api.post('/schedules', { ...data, campId: user.campId }),
-    {
-      onSuccess: () => {
-        qc.invalidateQueries(['schedules'])
-        closeForm()
-        toast.success('บันทึกตารางสำเร็จ')
-      }
-    }
-  )
-
-  const editMutation = useMutation(
-    ({ id, data }) => api.put(`/schedules/${id}`, { ...data, campId: user.campId }),
-    {
-      onSuccess: () => {
-        qc.invalidateQueries(['schedules'])
-        closeForm()
-        toast.success('แก้ไขตารางสำเร็จ')
-      }
-    }
-  )
-
-  const deleteMutation = useMutation(
-    id => api.delete(`/schedules/${id}`),
-    { onSuccess: () => { qc.invalidateQueries(['schedules']); toast.success('ลบตารางสำเร็จ') } }
-  )
-
-  const closeForm = () => {
-    setShowForm(false)
-    setEditingId(null)
-    setForm(EMPTY_FORM)
-  }
-
-  const openCreate = () => {
-    setForm(EMPTY_FORM)
-    setEditingId(null)
-    setShowForm(true)
-  }
-
-  const openEdit = (s) => {
-    const groupId = s.activityGroupId || activityGroups.find(g => g.squads?.some(sq => sq.id === s.squad?.id))?.id || ''
-    const group = activityGroups.find(g => g.id === groupId)
-    // auto-select ทุกหมู่ในกลุ่ม
-    const allSquadIds = group?.squads?.map(sq => sq.id) || s.squadIds || (s.squad ? [s.squad.id] : [])
-    setForm({
-      activityId: s.activityId || '',
-      date: s.date ? s.date.slice(0, 10) : '',
-      slot: s.slot || 'MORNING',
-      squadIds: allSquadIds,
-      activityGroupId: groupId,
-    })
-    setEditingId(s.id)
-    setShowForm(true)
-  }
-
-  const handleSubmit = () => {
-    if (editingId) {
-      editMutation.mutate({ id: editingId, data: form })
-    } else {
-      addMutation.mutate(form)
-    }
-  }
-
-  // เมื่อเลือกกลุ่มกิจกรรม → auto-select หมู่ทั้งหมดในกลุ่ม
-  const handleSelectGroup = (groupId) => {
-    const group = activityGroups.find(g => g.id === groupId)
-    const allSquadIds = group?.squads?.map(sq => sq.id) || []
-    setForm(f => ({ ...f, activityGroupId: groupId, squadIds: allSquadIds }))
-  }
-
-  const selectedGroup = activityGroups.find(g => g.id === form.activityGroupId)
-  const availableSquads = selectedGroup?.squads || []
-
-  function toggleSquad(id) {
-    setForm(f => ({
-      ...f,
-      squadIds: f.squadIds.includes(id)
-        ? f.squadIds.filter(x => x !== id)
-        : [...f.squadIds, id]
-    }))
-  }
 
   // group schedules by date
   const grouped = {}
@@ -154,25 +53,15 @@ export default function CampSchedule() {
     grouped[d].push(s)
   })
 
-  const isFormValid = form.activityGroupId && form.activityId && form.date && form.squadIds.length > 0
-
   return (
     <div className="page">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ตารางกิจกรรม</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            จัดการกำหนดการทำกิจกรรมสำหรับแต่ละกลุ่มกิจกรรม
-          </p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 active:scale-95 text-white text-sm font-semibold shadow-lg shadow-scout-600/25 transition-all duration-150"
-        >
-          <Plus size={16} /> เพิ่มกำหนดการ
-        </button>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ตารางกิจกรรม</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          กำหนดการทำกิจกรรมสำหรับแต่ละกลุ่มกิจกรรม
+        </p>
       </div>
 
       {/* Summary strip */}
@@ -206,14 +95,17 @@ export default function CampSchedule() {
               {items.map((s) => {
                 const slotLabel = SLOTS.find(sl => sl.value === s.slot)?.label
                 const activity = activities.find(a => a.id === s.activityId)
-                // หากลุ่มกิจกรรมที่ schedule นี้สังกัด
                 const group = activityGroups.find(g =>
                   g.id === s.activityGroupId ||
                   g.squads?.some(sq => sq.id === s.squad?.id)
                 )
 
                 return (
-                  <div key={s.id} className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:shadow-md hover:border-scout-300 dark:hover:border-scout-500 transition-all cursor-pointer" onClick={() => setViewingSchedule(s)}>
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:shadow-md hover:border-scout-300 dark:hover:border-scout-500 transition-all cursor-pointer"
+                    onClick={() => setViewingSchedule(s)}
+                  >
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-scout-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
                       <Clock size={20} className="text-white" />
                     </div>
@@ -226,7 +118,6 @@ export default function CampSchedule() {
                           {slotLabel}
                         </span>
                       </div>
-                      {/* แสดงแค่ชื่อกลุ่มกิจกรรม */}
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
                         {group && (
                           <span className="font-medium text-scout-600 dark:text-scout-400">
@@ -238,21 +129,6 @@ export default function CampSchedule() {
                         )}
                       </div>
                     </div>
-                    {/* ปุ่มแก้ไข + ลบ */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openEdit(s) }}
-                        className="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-scout-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-scout-600 transition active:scale-95"
-                      >
-                        <Pencil size={13} /> แก้ไข
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(s.id) }}
-                        className="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl border border-red-100 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition active:scale-95"
-                      >
-                        <Trash2 size={13} /> ลบ
-                      </button>
-                    </div>
                   </div>
                 )
               })}
@@ -262,172 +138,17 @@ export default function CampSchedule() {
       </div>
 
       {/* Empty state */}
-      {schedules.length === 0 && !showForm && (
+      {schedules.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-20 h-20 rounded-2xl bg-scout-50 dark:bg-scout-900/30 flex items-center justify-center mb-4">
             <Calendar size={36} className="text-scout-400" />
           </div>
           <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">ยังไม่มีตารางกิจกรรม</h3>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">เริ่มกำหนดการทำกิจกรรมสำหรับกลุ่มต่างๆ</p>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-semibold shadow-lg shadow-scout-600/25 transition-all active:scale-95"
-          >
-            <Plus size={16} /> เพิ่มกำหนดการแรก
-          </button>
+          <p className="text-sm text-gray-400 dark:text-gray-500">ยังไม่มีกำหนดการทำกิจกรรม</p>
         </div>
       )}
 
-      {/* ══ Add / Edit Schedule Modal ════════════════════════════════════════ */}
-      {showForm && (
-        <Modal onClose={closeForm}>
-          <ModalHeader
-            title={editingId ? 'แก้ไขกำหนดการกิจกรรม' : 'เพิ่มกำหนดการกิจกรรม'}
-            onClose={closeForm}
-          />
-
-          <div className="px-6 py-5 space-y-5">
-
-            {/* กลุ่มกิจกรรม */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                กลุ่มกิจกรรม *
-              </label>
-              <select
-                className={INPUT_CLS}
-                value={form.activityGroupId}
-                onChange={e => handleSelectGroup(e.target.value)}
-              >
-                <option value="">เลือกกลุ่มกิจกรรม</option>
-                {activityGroups.map(g => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} ({g.squads?.length || 0} หมู่)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* กิจกรรม */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                กิจกรรม *
-              </label>
-              <select
-                className={INPUT_CLS}
-                value={form.activityId}
-                onChange={e => setForm(f => ({ ...f, activityId: e.target.value }))}
-                disabled={!form.activityGroupId}
-              >
-                <option value="">เลือกกิจกรรม</option>
-                {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-
-            {/* วันที่ + ช่วงเวลา */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                  วันที่ *
-                </label>
-                <input
-                  type="date"
-                  className={INPUT_CLS}
-                  value={form.date}
-                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                  ช่วงเวลา *
-                </label>
-                <div className="flex gap-1">
-                  {SLOTS.map(s => (
-                    <button
-                      key={s.value}
-                      onClick={() => setForm(f => ({ ...f, slot: s.value }))}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                        form.slot === s.value
-                          ? 'bg-scout-600 text-white shadow-sm'
-                          : 'bg-gray-100 dark:bg-scout-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-scout-600'
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* หมู่ในกลุ่ม — auto-selected, ยังปรับได้ */}
-            {form.activityGroupId && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    หมู่ในกลุ่ม ({form.squadIds.length}/{availableSquads.length} หมู่)
-                  </label>
-                  {/* ปุ่ม เลือกทั้งหมด / ยกเลิกทั้งหมด */}
-                  <button
-                    onClick={() => {
-                      const allIds = availableSquads.map(sq => sq.id)
-                      const allSelected = allIds.every(id => form.squadIds.includes(id))
-                      setForm(f => ({ ...f, squadIds: allSelected ? [] : allIds }))
-                    }}
-                    className="text-xs font-semibold text-scout-600 dark:text-scout-400 hover:underline"
-                  >
-                    {availableSquads.every(sq => form.squadIds.includes(sq.id)) ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                  </button>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {availableSquads.length > 0 ? (
-                    availableSquads.map(squad => (
-                      <label
-                        key={squad.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-scout-600/40 transition"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={form.squadIds.includes(squad.id)}
-                          onChange={() => toggleSquad(squad.id)}
-                          className="rounded text-scout-600 focus:ring-scout-400"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {squad.name || `กอง ${squad.troop?.number} หมู่ ${squad.number}`}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {squad._count?.scouts || 0} คน
-                            {squad.leader && ` · ผู้กำกับ: ${squad.leader.name}`}
-                          </p>
-                        </div>
-                      </label>
-                    ))
-                  ) : (
-                    <div className="text-center py-4 text-gray-400 text-sm">ไม่มีหมู่ในกลุ่มนี้</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="px-6 pb-6 flex gap-3">
-            <button
-              onClick={closeForm}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-600 transition"
-            >
-              ยกเลิก
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={!isFormValid}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-semibold shadow-md shadow-scout-600/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              {editingId ? 'บันทึกการแก้ไข' : 'บันทึกกำหนดการ'}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {/* ══ Detail Modal ═════════════════════════════════════════════════════ */}
+      {/* Detail Modal */}
       {viewingSchedule && (() => {
         const s = viewingSchedule
         const activity = activities.find(a => a.id === s.activityId)
@@ -437,7 +158,6 @@ export default function CampSchedule() {
           g.squads?.some(sq => sq.id === s.squad?.id)
         )
         const allGroupSquads = group?.squads || []
-        // squadIds อาจว่างเพราะ API ไม่ส่งมา → fallback ใช้ทุกหมู่ในกลุ่ม
         const rawIds = (s.squadIds?.length > 0)
           ? s.squadIds
           : s.squad
@@ -449,10 +169,7 @@ export default function CampSchedule() {
 
         return (
           <Modal onClose={() => setViewingSchedule(null)}>
-            <ModalHeader
-              title="รายละเอียดกำหนดการ"
-              onClose={() => setViewingSchedule(null)}
-            />
+            <ModalHeader title="รายละเอียดกำหนดการ" onClose={() => setViewingSchedule(null)} />
 
             <div className="px-6 py-5 space-y-5">
 
@@ -548,16 +265,10 @@ export default function CampSchedule() {
               )}
             </div>
 
-            <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={() => { setViewingSchedule(null); openEdit(s) }}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-600 transition"
-              >
-                <Pencil size={14} /> แก้ไข
-              </button>
+            <div className="px-6 pb-6">
               <button
                 onClick={() => setViewingSchedule(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-semibold transition"
+                className="w-full px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-semibold transition"
               >
                 ปิด
               </button>

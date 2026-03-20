@@ -18,20 +18,15 @@ router.get('/accounts', async (req, res) => {
 
 // POST /api/admin/accounts
 router.post('/accounts', async (req, res) => {
-  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email, prefix, allergies, congenitalDisease, birthDate } = req.body
+  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email } = req.body
 
-  // Validate required fields
   if (!username || !password || !role || !name) {
     return res.status(400).json({ 
       error: 'กรุณากรอกข้อมูลให้ครบถ้วน: username, password, role, name' 
     })
   }
 
-  // Check if username already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { username }
-  })
-  
+  const existingUser = await prisma.user.findUnique({ where: { username } })
   if (existingUser) {
     return res.status(400).json({ 
       error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น' 
@@ -40,19 +35,7 @@ router.post('/accounts', async (req, res) => {
 
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
-    data: { 
-      username, 
-      password: hashed, 
-      role, 
-      name, 
-      campId: campId || null,
-      firstName: firstName || null,
-      lastName: lastName || null,
-      phone: phone || null,
-      email: email || null,
-      school: school || null,
-      prefix: prefix || null
-    }
+    data: { username, password: hashed, role, name, campId: campId || null }
   })
 
   // ถ้า role เป็น SCOUT สร้าง Scout record อัตโนมัติ
@@ -72,10 +55,7 @@ router.post('/accounts', async (req, res) => {
         phone: phone || null,
         email: email || null,
         squadId: squadId || null,
-        userId: user.id,
-        birthDate: birthDate ? new Date(birthDate) : null,
-        allergies: allergies || null,
-        congenitalDisease: congenitalDisease || null
+        userId: user.id
       }
     })
   }
@@ -94,7 +74,7 @@ router.post('/accounts', async (req, res) => {
 
 // PATCH /api/admin/accounts/:id
 router.patch('/accounts/:id', async (req, res) => {
-  const { name, role, campId, activityId, password, squadId, firstName, lastName, phone, email, school, prefix, allergies, congenitalDisease, birthDate } = req.body
+  const { name, role, campId, activityId, password, squadId } = req.body
 
   const data = { name, role, campId: campId || null }
   if (password) data.password = await bcrypt.hash(password, 10)
@@ -166,8 +146,6 @@ router.post('/import-scouts', async (req, res) => {
   for (const s of scouts) {
     try {
       const scoutCode = s.scoutCode || `SC${Date.now()}${Math.random().toString(36).substr(2,4).toUpperCase()}`
-      
-      // สร้าง User ก่อน
       const username = `scout_${scoutCode.toLowerCase()}`
       const user = await prisma.user.upsert({
         where: { username },
@@ -180,46 +158,25 @@ router.post('/import-scouts', async (req, res) => {
           campId: s.campId || null
         }
       })
-      
-      // สร้าง Scout แล้วผูกกับ User
       const scout = await prisma.scout.upsert({
         where: { scoutCode },
-        create: { 
-          ...s, 
-          scoutCode,
-          userId: user.id 
-        },
-        update: { 
-          ...s,
-          userId: user.id 
-        }
+        create: { ...s, scoutCode, userId: user.id },
+        update: { ...s, userId: user.id }
       })
-      
       results.push({ 
         scout, 
-        user: { 
-          id: user.id, 
-          username: user.username, 
-          password: defaultPassword 
-        } 
+        user: { id: user.id, username: user.username, password: defaultPassword } 
       })
     } catch (error) {
       console.error(`Error importing scout ${s.scoutCode}:`, error)
-      results.push({ 
-        error: error.message, 
-        scoutCode: s.scoutCode || 'unknown' 
-      })
+      results.push({ error: error.message, scoutCode: s.scoutCode || 'unknown' })
     }
   }
   
   const successCount = results.filter(r => !r.error).length
   const errorCount = results.filter(r => r.error).length
   
-  res.status(201).json({ 
-    count: successCount, 
-    errors: errorCount,
-    scouts: results 
-  })
+  res.status(201).json({ count: successCount, errors: errorCount, scouts: results })
 })
 
 // GET /api/admin/scouts/available
@@ -260,14 +217,13 @@ router.get('/leaders/available', async (req, res) => {
     orderBy: { name: 'asc' }
   })
   
-  // Transform data to match frontend expectations
   const transformedLeaders = leaders.map(leader => ({
     ...leader,
     firstName: leader.name.split(' ')[0] || leader.name,
     lastName: leader.name.split(' ').slice(1).join(' ') || '',
-    experience: 'ไม่ระบุ', // Default value
-    specialization: 'ไม่ระบุ', // Default value
-    phone: '' // Default value
+    experience: 'ไม่ระบุ',
+    specialization: 'ไม่ระบุ',
+    phone: ''
   }))
   
   res.json(transformedLeaders)
@@ -286,7 +242,6 @@ router.post('/scouts/assign', async (req, res) => {
 // POST /api/admin/leaders/assign
 router.post('/leaders/assign', async (req, res) => {
   const { leaderIds, squadId } = req.body
-  // For now, just return success since the exact assignment logic depends on your schema
   res.json({ message: 'จัดสรรผู้กำกับสำเร็จ' })
 })
 

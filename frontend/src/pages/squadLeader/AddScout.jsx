@@ -6,7 +6,8 @@ import toast from 'react-hot-toast';
 import { Plus, Users, School, X, ArrowLeft } from 'lucide-react';
 
 export default function SquadLeaderAddScout() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [squad, setSquad] = useState(null);
   const [availableScouts, setAvailableScouts] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,17 +15,36 @@ export default function SquadLeaderAddScout() {
   const [addingScout, setAddingScout] = useState(false);
 
   useEffect(() => {
-    // ปิดการใช้งานหน้า Add Scout ชั่วคราวจนกว่า backend พร้อม
-    setLoading(false);
-    setSquad(null);
-    setAvailableScouts(null);
-    
-    toast.error('หน้า Add Scout ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    loadData();
   }, []);
 
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [squadData, scoutsData] = await Promise.all([
+        squadLeaderApi.getMySquad(),
+        squadLeaderApi.getAvailableScouts(),
+      ]);
+      setSquad(squadData);
+      setAvailableScouts(scoutsData);
+    } catch (err) {
+      toast.error('โหลดข้อมูลไม่สำเร็จ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddScout = async (scoutId) => {
-    // ปิดการใช้งานชั่วคราวจนกว่า backend พร้อม
-    toast.error('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน\nกรุณา restart Backend server และลองใหม่');
+    try {
+      setAddingScout(true);
+      await squadLeaderApi.addScout(scoutId);
+      toast.success('เพิ่มลูกเสือสำเร็จ');
+      loadData();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'เพิ่มลูกเสือไม่สำเร็จ');
+    } finally {
+      setAddingScout(false);
+    }
   };
 
   if (loading) {
@@ -40,7 +60,7 @@ export default function SquadLeaderAddScout() {
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => window.history.back()}
             className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-scout-800 flex items-center justify-center text-gray-600 dark:text-scout-300 hover:bg-gray-200 dark:hover:bg-scout-700 transition-all"
           >
@@ -64,12 +84,12 @@ export default function SquadLeaderAddScout() {
             <p className="text-sm text-gray-400">ตรวจสอบข้อมูลก่อนเพิ่มสมาชิก</p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gray-50 dark:bg-scout-800 rounded-lg p-3">
             <p className="text-xs text-gray-400">สมาชิกปัจจุบัน</p>
             <p className="text-xl font-bold text-scout-700 dark:text-scout-300">
-              {squad?.scouts?.length || 0}/8 คน
+              {availableScouts?.currentCount || 0}/8 คน
             </p>
           </div>
           <div className="bg-gray-50 dark:bg-scout-800 rounded-lg p-3">
@@ -95,29 +115,17 @@ export default function SquadLeaderAddScout() {
             <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-3">
               <X size={32} className="text-red-600 dark:text-red-400" />
             </div>
-            <p className="text-lg font-medium text-red-600 dark:text-red-400 mb-2">
-              หมู่เต็มแล้ว
-            </p>
-            <p className="text-sm text-gray-400">
-              หมู่นี้มีสมาชิกครบ 8 คนแล้ว ไม่สามารถเพิ่มได้อีก
-            </p>
-          </div>
-        ) : loadingScouts ? (
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-4 border-scout-200 border-t-scout-700 rounded-full animate-spin mx-auto"></div>
-            <p className="text-sm text-gray-400 mt-3">กำลังโหลดรายชื่อ...</p>
+            <p className="text-lg font-medium text-red-600 dark:text-red-400 mb-2">หมู่เต็มแล้ว</p>
+            <p className="text-sm text-gray-400">หมู่นี้มีสมาชิกครบ 8 คนแล้ว ไม่สามารถเพิ่มได้อีก</p>
           </div>
         ) : availableScouts?.scouts?.length === 0 ? (
           <div className="text-center py-8">
             <School size={40} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-400">
-              ไม่มีลูกเสือที่สามารถเพิ่มได้
-            </p>
+            <p className="text-sm text-gray-400">ไม่มีลูกเสือที่สามารถเพิ่มได้</p>
             <p className="text-xs text-gray-400 mt-1">
-              {availableScouts?.school 
+              {availableScouts?.school
                 ? `ลูกเสือจาก ${availableScouts.school} ทั้งหมดมีหมู่แล้ว`
-                : 'ไม่พบลูกเสือที่ยังไม่มีหมู่'
-              }
+                : 'ไม่พบลูกเสือที่ยังไม่มีหมู่'}
             </p>
           </div>
         ) : (

@@ -12,7 +12,12 @@ import scheduleRoutes from './routes/schedules.js'
 import attendanceRoutes from './routes/attendance.js'
 import adminRoutes from './routes/admin.js'
 import reportRoutes from './routes/reports.js'
+<<<<<<< Updated upstream
 import squadRoutes from './routes/squads.js'
+=======
+import squadAssignmentRoutes from './routes/squadAssignment.js'
+import squadLeaderRoutes from './routes/squadLeader.js'  // ✅ เพิ่ม
+>>>>>>> Stashed changes
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -28,7 +33,7 @@ app.use(cors({
     if (!origin || allowed.some(o => origin.startsWith(o))) {
       callback(null, true)
     } else {
-      callback(null, true) // allow all for now
+      callback(null, true)
     }
   },
   credentials: true
@@ -45,11 +50,15 @@ app.use('/api/schedules', scheduleRoutes)
 app.use('/api/attendance', attendanceRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/reports', reportRoutes)
+<<<<<<< Updated upstream
 app.use('/api/squads', squadRoutes)
+=======
+app.use('/api/squad-assignment', squadAssignmentRoutes)
+app.use('/api/squad-leader', squadLeaderRoutes)  // ✅ เพิ่ม
+>>>>>>> Stashed changes
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }))
 
-// Test endpoint - ไม่ต้อง login
 app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'API ทำงานได้',

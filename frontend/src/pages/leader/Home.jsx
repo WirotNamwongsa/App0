@@ -8,110 +8,19 @@ import BottomNav from '../../components/BottomNav'
 export default function LeaderHome() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
-  const { data: squad, isLoading, error } = useQuery('my-squad', async () => {
-    try {
-      const me = await api.get('/auth/me')
-      console.log('User data from /auth/me:', me)
-      
-      // ถ้าไม่มี leadingSquad ให้ลองหาจากฐานข้อมูลโดยตรง
-      if (!me.leadingSquad) {
-        console.log('No leadingSquad found, trying to find squad directly...')
-        try {
-          // ลองหาหมู่ที่ผู้กำกับนี้ดูแล
-          const squads = await api.get('/squads/my-squad')
-          if (squads && squads.id) {
-            console.log('Found squad via direct query:', squads)
-            const squadData = await api.get(`/reports/squad/${squads.id}`)
-            return squadData
-          }
-        } catch (squadError) {
-          console.log('Squad query failed, using fallback data')
-        }
-        
-        // Fallback ข้อมูลสำหรับทดสอบ
-        return {
-          squad: {
-            id: 'test-squad',
-            name: 'หมู่ทดสอบ',
-            number: 1,
-            troop: { 
-              id: 'test-troop',
-              name: 'กองทดสอบ', 
-              number: 1, 
-              camp: { 
-                id: 'test-camp',
-                name: 'ค่ายทดสอบ' 
-              } 
-            },
-            scouts: [
-              {
-                id: 'test-scout-1',
-                firstName: 'สมชาย',
-                lastName: 'ใจดี',
-                nickname: 'ชาย',
-                school: 'โรงเรียนทดสอบ',
-                province: 'กรุงเทพมหานคร',
-                attendances: []
-              },
-              {
-                id: 'test-scout-2',
-                firstName: 'มานี',
-                lastName: 'รักดี',
-                nickname: 'มานี',
-                school: 'โรงเรียนทดสอบ',
-                province: 'กรุงเทพมหานคร',
-                attendances: []
-              }
-            ]
-          }
-        }
-      }
-      
-      console.log('Found leadingSquad:', me.leadingSquad)
-      const squadData = await api.get(`/reports/squad/${me.leadingSquad.id}`)
-      console.log('Squad data:', squadData)
-      return squadData
-    } catch (err) {
-      console.error('Error loading squad data:', err)
-      // Fallback ข้อมูลสำหรับทดสอบ
-      return {
-        squad: {
-          id: 'test-squad',
-          name: 'หมู่ทดสอบ',
-          number: 1,
-          troop: { 
-            id: 'test-troop',
-            name: 'กองทดสอบ', 
-            number: 1, 
-            camp: { 
-              id: 'test-camp',
-              name: 'ค่ายทดสอบ' 
-            } 
-          },
-          scouts: [
-            {
-              id: 'test-scout-1',
-              firstName: 'สมชาย',
-              lastName: 'ใจดี',
-              nickname: 'ชาย',
-              school: 'โรงเรียนทดสอบ',
-              province: 'กรุงเทพมหานคร',
-              attendances: []
-            },
-            {
-              id: 'test-scout-2',
-              firstName: 'มานี',
-              lastName: 'รักดี',
-              nickname: 'มานี',
-              school: 'โรงเรียนทดสอบ',
-              province: 'กรุงเทพมหานคร',
-              attendances: []
-            }
-          ]
-        }
+  
+  // ดึงข้อมูลหมู่ของผู้กำกับโดยตรง
+  const { data: squad, isLoading, error } = useQuery(
+    'my-squad', 
+    () => api.get('/squads/my-squad'),
+    {
+      retry: 2,
+      onError: (error) => {
+        console.error('Error loading squad:', error)
+        // ไม่ต้องแสดง fallback ให้ผู้ใช้เห็น
       }
     }
-  })
+  )
 
   return (
     <div className="page">
@@ -171,13 +80,10 @@ export default function LeaderHome() {
           <p className="text-sm text-gray-400 mb-4">คุณอาจยังไม่ได้รับมอบหมายหมู่</p>
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
             <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-              📋 ข้อมูลทดสอบ:
+              ℹ️ ข้อมูลผู้กำกับ: {user?.username}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              บัญชีผู้กำกับ: <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">testleader</span>
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              รหัสผ่าน: <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">123456</span>
+              ติดต่อ: {user?.role}
             </p>
           </div>
         </div>
