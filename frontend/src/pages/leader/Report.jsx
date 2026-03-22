@@ -8,7 +8,7 @@ const typeClass = { MAIN: 'badge-main', SPECIAL: 'badge-special', FREE: 'badge-f
 
 export default function LeaderReport() {
   const { data: me } = useQuery('me', () => api.get('/auth/me'))
-  const squadId = me?.leadingSquad?.id
+  const squadId = me?.leadingSquads?.[0]?.id
 
   const { data, isLoading } = useQuery(
     ['squad-report', squadId],

@@ -16,7 +16,7 @@ router.post('/login', async (req, res) => {
     where: { username },
     include: {
       camp: { select: { id: true, name: true } },
-      leadingSquad: { include: { troop: true } },
+      leadingSquads: { include: { troop: true } },  // ✅
       staffActivity: { select: { id: true, name: true } },
       scoutAccount: { select: { id: true, scoutCode: true } }
     }
@@ -42,7 +42,7 @@ router.get('/me', authenticate, async (req, res) => {
     where: { id: req.user.id },
     include: {
       camp: { select: { id: true, name: true } },
-      leadingSquad: { include: { troop: true } },
+      leadingSquads: { include: { troop: true } },  // ✅
       staffActivity: { select: { id: true, name: true } },
       scoutAccount: true
     }

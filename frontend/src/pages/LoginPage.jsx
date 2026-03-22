@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { Eye, EyeOff } from 'lucide-react'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import ThemeToggle from '../components/ThemeToggle'
@@ -9,7 +8,6 @@ import ThemeToggle from '../components/ThemeToggle'
 export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' })
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
@@ -21,9 +19,6 @@ export default function LoginPage() {
       setAuth(user, token)
       toast.success(`ยินดีต้อนรับ ${user.name}`)
       navigate('/')
-
-    } catch (error) {
-      console.error("Login error:", error)
     } finally {
       setLoading(false)
     }
@@ -79,29 +74,16 @@ export default function LoginPage() {
             <label className="text-sm mb-1.5 block text-gray-600 dark:text-white/70">
               รหัสผ่าน
             </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="input pr-10
-                  bg-gray-50 border-gray-500 text-gray-900 placeholder:text-gray-400
-                  dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-white/40"
-                placeholder="กรอกรหัสผ่าน"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-              >
-                {showPassword ? (
-                  <EyeOff size={20} />
-                ) : (
-                  <Eye size={20} />
-                )}
-              </button>
-            </div>
+            <input
+              type="password"
+              className="input
+                bg-gray-50 border-gray-500 text-gray-900 placeholder:text-gray-400
+                dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-white/40"
+              placeholder="กรอกรหัสผ่าน"
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              autoComplete="current-password"
+            />
           </div>
           <button type="submit" disabled={loading}
             className="btn w-full font-semibold mt-2 disabled:opacity-50
@@ -120,17 +102,11 @@ export default function LoginPage() {
           </p>
           <div className="space-y-1">
             {[
-              { user: 'admin',         pass: 'admin1234',   label: 'Admin' },
-              { user: 'campmanager1',  pass: 'camp1234',    label: 'ผู้ดูแลค่าย 1' },
-              { user: 'campmanager2',  pass: 'camp1234',    label: 'ผู้ดูแลค่าย 2' },
-              { user: 'director1',     pass: 'password1234', label: 'ผู้กำกับ 1' },
-              { user: 'director2',     pass: 'password1234', label: 'ผู้กำกับ 2' },
-              { user: 'director3',     pass: 'password1234', label: 'ผู้กำกับ 3' },
-              { user: 'staff1',        pass: 'staff1234',   label: 'เจ้าหน้าที่ 1' },
-              { user: 'staff2',        pass: 'staff1234',   label: 'เจ้าหน้าที่ 2' },
-              { user: 'scout001',      pass: 'scout1234',   label: 'ลูกเสือ 1' },
-              { user: 'scout002',      pass: 'scout1234',   label: 'ลูกเสือ 2' },
-              { user: 'scout003',      pass: 'scout1234',   label: 'ลูกเสือ 3' },
+              { user: 'admin',       pass: 'admin1234',  label: 'Admin' },
+              { user: 'camp_a',      pass: 'camp1234',   label: 'ผู้ดูแลค่าย' },
+              { user: 'leader_1_1',  pass: 'leader1234', label: 'ผู้กำกับหมู่' },
+              { user: 'staff_skill', pass: 'staff1234',  label: 'ผู้จัดกิจกรรม' },
+              { user: 'scout1',      pass: 'scout1234',  label: 'ลูกเสือ' },
             ].map(a => (
               <button key={a.user} type="button"
                 onClick={() => setForm({ username: a.user, password: a.pass })}

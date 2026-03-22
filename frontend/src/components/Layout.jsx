@@ -17,6 +17,7 @@ const navConfig = {
     { to: '/squad-leader/home', icon: Users, label: 'หมู่ของฉัน' },
     { to: '/leader/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
+    { to: '/leader/profile', icon: User, label: 'โปรไฟล์' },
   ],
   STAFF: [
     { to: '/staff/scan', icon: ScanLine, label: 'สแกน QR' },

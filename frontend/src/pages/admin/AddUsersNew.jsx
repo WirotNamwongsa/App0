@@ -1,59 +1,58 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Users, Shield, X, Plus, Search, Filter, RefreshCw, Check } from 'lucide-react'
+import { Users, Shield, X, Plus, UserPlus, ChevronRight } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
 
-const ROLES = [
-  { value: 'TROOP_LEADER', label: 'ผู้กำกับหมู่' },
-  { value: 'SCOUT', label: 'ลูกเสือ' },
-]
+// ─── Sub-components outside main to prevent focus loss ───────────────────────
+
+function Modal({ children, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-scout-800 w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const INPUT = "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 bg-gray-50 dark:bg-scout-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
+
+function Field({ label, error, children }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{label}</label>
+      {children}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  )
+}
+
+const PROVINCES = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"]
+
+const EMPTY = { username:'', password:'', confirmPassword:'', firstName:'', lastName:'', nickname:'', birthDate:'', school:'', province:'', phone:'', email:'', role:'SCOUT', prefix:'', allergies:'', congenitalDisease:'', campId:'', squadId:'' }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function AdminAddUsers() {
-  const qc = useQueryClient()
-  const [form, setForm] = useState({ 
-    username: '', 
-    password: '', 
-    confirmPassword: '',
-    firstName: '', 
-    lastName: '', 
-    nickname: '', 
-    birthDate: '',
-    school: '', 
-    province: '', 
-    phone: '', 
-    email: '', 
-    role: 'SCOUT',
-    scoutCode: '',
-    prefix: '',
-    allergies: '',
-    congenitalDisease: '',
-    campId: ''
-
-  })
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState(EMPTY)
   const [errors, setErrors] = useState({})
 
-  // Fetch camps data only
   const { data: camps = [] } = useQuery('camps', () => api.get('/camps'))
-  
-  // Fetch troop leaders data
- 
-  // Fetch squads when camp is selected
   const { data: squads = [] } = useQuery(
     ['squads', form.campId],
     () => form.campId ? api.get(`/camps/${form.campId}/squads`) : Promise.resolve([]),
-    {
-      enabled: !!form.campId,
-      onError: () => {
-        toast.error('ไม่สามารถโหลดข้อมูลหมู่ได้')
-      }
-    }
+    { enabled: !!form.campId }
   )
 
   const createMutation = useMutation(d => api.post('/admin/accounts', d), {
-    onSuccess: () => { 
-      resetForm()
+    onSuccess: () => {
+      setForm(EMPTY)
+      setErrors({})
+      setShowModal(false)
       toast.success('สร้างบัญชีสำเร็จ')
     },
     onError: (error) => {
@@ -66,22 +65,18 @@ export default function AdminAddUsers() {
     if (!form.username.trim()) e.username = 'กรุณากรอก Username'
     if (!form.password.trim()) e.password = 'กรุณากรอกรหัสผ่าน'
     if (form.password !== form.confirmPassword) e.confirmPassword = 'รหัสผ่านไม่ตรงกัน'
-    if (!form.role) e.role = 'กรุณาเลือก Role'
+    if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
+    if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
+    if (!form.prefix) e.prefix = 'กรุณาเลือกคำนำหน้า'
+    if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
     if (form.role === 'SCOUT') {
-      if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
-      if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
       if (!form.nickname.trim()) e.nickname = 'กรุณากรอกชื่อเล่น'
-      if (!form.school.trim()) e.school = 'กรุณากรอกโรงเรียน'
+      if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
       if (!form.province) e.province = 'กรุณาเลือกจังหวัด'
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
-      if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
-    } else if (form.role === 'TROOP_LEADER') {
-      if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
-      if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
+    } else {
       if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
-      if (!form.prefix) e.prefix = 'กรุณาเลือกคำนำหน้า'
-      if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
       if (!form.squadId) e.squadId = 'กรุณาเลือกหมู่'
     }
     return e
@@ -91,467 +86,247 @@ export default function AdminAddUsers() {
     const e = validate()
     if (Object.keys(e).length > 0) { setErrors(e); return }
     setErrors({})
-    
-    // Generate name from firstName and lastName
     const fullName = `${form.firstName} ${form.lastName}`.trim()
-    
-    const userData = {
-      username: form.username,
-      password: form.password,
-      name: fullName,
-      role: form.role,
-      campId: form.campId || null
-    }
-
+    const userData = { username: form.username, password: form.password, name: fullName, role: form.role, campId: form.campId || null, firstName: form.firstName, lastName: form.lastName, school: form.school, phone: form.phone, prefix: form.prefix }
     if (form.role === 'SCOUT') {
-      userData.firstName = form.firstName
-      userData.lastName = form.lastName
-      userData.nickname = form.nickname || form.firstName
-      userData.birthDate = form.birthDate
-      userData.school = form.school
+      Object.assign(userData, { nickname: form.nickname, birthDate: form.birthDate, province: form.province, email: form.email, allergies: form.allergies, congenitalDisease: form.congenitalDisease })
+    } else {
+      userData.squadId = form.squadId
       userData.province = form.province
-      userData.phone = form.phone
       userData.email = form.email
-      userData.allergies = form.allergies
-      userData.congenitalDisease = form.congenitalDisease
-      userData.prefix = form.prefix // Add prefix for scouts
-    } else if (form.role === 'TROOP_LEADER') {
-      userData.firstName = form.firstName
-      userData.lastName = form.lastName
-
-      userData.school = form.school
-      userData.phone = form.phone
-      userData.prefix = form.prefix
-
     }
-
     createMutation.mutate(userData)
   }
 
-  function closeForm() {
-    resetForm()
-  }
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  function resetForm() {
-    setForm({ 
-      username: '', 
-      password: '', 
-      confirmPassword: '',
-      firstName: '', 
-      lastName: '', 
-      nickname: '', 
-      birthDate: '',
-      school: '', 
-      province: '', 
-      phone: '', 
-      email: '', 
-      role: 'SCOUT',
-      scoutCode: '',
-
-      prefix: '',
-      allergies: '',
-      congenitalDisease: '',
-      campId: ''
-    })
-    setErrors({})
-  }
+  const isLeader = form.role === 'TROOP_LEADER'
 
   return (
     <div className="page">
-      <PageHeader title="เพิ่มผู้กำกับและลูกเสือ" />
+      <PageHeader title="เพิ่มผู้ใช้" />
 
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-scout-900 dark:text-white">สร้างผู้ใช้ใหม่</h2>
-        </div>
+      {/* Hero area */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        {/* Card ผู้กำกับ */}
+        <button
+          onClick={() => { set('role', 'TROOP_LEADER'); setShowModal(true) }}
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-scout-600 to-scout-800 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
+          <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+              <Shield size={20} className="text-white" />
+            </div>
+            <p className="text-white font-bold text-base leading-tight">ผู้กำกับหมู่</p>
+            <p className="text-scout-200 text-xs mt-1">เพิ่มผู้กำกับหมู่ลูกเสือ</p>
+            <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
+              <span>เพิ่มเลย</span>
+              <ChevronRight size={12} />
+            </div>
+          </div>
+        </button>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ประเภทผู้ใช้
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {ROLES.map(role => (
+        {/* Card ลูกเสือ */}
+        <button
+          onClick={() => { set('role', 'SCOUT'); setShowModal(true) }}
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
+          <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+              <Users size={20} className="text-white" />
+            </div>
+            <p className="text-white font-bold text-base leading-tight">ลูกเสือ</p>
+            <p className="text-emerald-100 text-xs mt-1">เพิ่มลูกเสือเข้าระบบ</p>
+            <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
+              <span>เพิ่มเลย</span>
+              <ChevronRight size={12} />
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* ══ Modal ══════════════════════════════════════════════════════════════ */}
+      {showModal && (
+        <Modal onClose={() => { setShowModal(false); setForm(EMPTY); setErrors({}) }}>
+          {/* Header */}
+          <div className={`px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-scout-700`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isLeader ? 'bg-scout-100 dark:bg-scout-900/50' : 'bg-emerald-100 dark:bg-emerald-900/40'}`}>
+                {isLeader ? <Shield size={18} className="text-scout-600 dark:text-scout-400" /> : <Users size={18} className="text-emerald-600 dark:text-emerald-400" />}
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  {isLeader ? 'เพิ่มผู้กำกับหมู่' : 'เพิ่มลูกเสือ'}
+                </h3>
+                <p className="text-xs text-gray-400">กรอกข้อมูลให้ครบถ้วน</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setShowModal(false); setForm(EMPTY); setErrors({}) }}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-scout-700 text-gray-400 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Toggle role */}
+          <div className="px-5 pt-4">
+            <div className="flex bg-gray-100 dark:bg-scout-900 p-1 rounded-xl">
+              {[{v:'TROOP_LEADER',l:'ผู้กำกับหมู่'},{v:'SCOUT',l:'ลูกเสือ'}].map(r => (
                 <button
-                  key={role.value}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, role: role.value }))}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    form.role === role.value
-                      ? 'border-scout-500 bg-scout-50 dark:bg-scout-800 text-scout-700 dark:text-scout-300'
-                      : 'border-gray-200 dark:border-scout-700 hover:border-gray-300 dark:hover:border-scout-600'
-                  }`}
+                  key={r.v}
+                  onClick={() => set('role', r.v)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${form.role === r.v ? 'bg-white dark:bg-scout-700 text-scout-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  {role.value === 'SCOUT' ? <Users size={20} className="mx-auto mb-2" /> : <Shield size={20} className="mx-auto mb-2" />}
-                  <p className="text-sm font-medium">{role.label}</p>
+                  {r.l}
                 </button>
               ))}
             </div>
-            {errors.role && <p className="text-xs text-red-500 mt-1 ml-1">{errors.role}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ชื่อผู้ใช้ 
-            </label>
-            <input
-              type="text"
-              value={form.username}
-              onChange={(e) => setForm({...form, username: e.target.value})}
-              className={`input ${errors.username ? 'border-red-400 dark:border-red-500' : ''}`}
-              placeholder="กรอกชื่อผู้ใช้"
-            />
-            {errors.username && <p className="text-xs text-red-500 mt-1 ml-1">{errors.username}</p>}
-          </div>
+          {/* Form body */}
+          <div className="px-5 py-4 space-y-4">
 
-          {/* Password fields - moved after username */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                รหัสผ่าน 
-              </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({...form, password: e.target.value})}
-                className={`input ${errors.password ? 'border-red-400 dark:border-red-500' : ''}`}
-                placeholder="กรอกรหัสผ่าน"
-              />
-              {errors.password && <p className="text-xs text-red-500 mt-1 ml-1">{errors.password}</p>}
+            {/* Section: บัญชี */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ข้อมูลบัญชี</p>
+
+            <Field label="ชื่อผู้ใช้ *" error={errors.username}>
+              <input type="text" value={form.username} onChange={e => set('username', e.target.value)} className={INPUT} placeholder="เช่น leader_somchai" />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="รหัสผ่าน *" error={errors.password}>
+                <input type="password" value={form.password} onChange={e => set('password', e.target.value)} className={INPUT} placeholder="••••••••" />
+              </Field>
+              <Field label="ยืนยันรหัสผ่าน *" error={errors.confirmPassword}>
+                <input type="password" value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} className={INPUT} placeholder="••••••••" />
+              </Field>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                ยืนยันรหัสผ่าน 
-              </label>
-              <input
-                type="password"
-                value={form.confirmPassword}
-                onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
-                className={`input ${errors.confirmPassword ? 'border-red-400 dark:border-red-500' : ''}`}
-                placeholder="ยืนยันรหัสผ่าน"
-              />
-              {errors.confirmPassword && <p className="text-xs text-red-500 mt-1 ml-1">{errors.confirmPassword}</p>}
-            </div>
-          </div>
 
-          {/* Prefix field - shown for both TROOP_LEADER and SCOUT */}
-          {(form.role === 'TROOP_LEADER' || form.role === 'SCOUT') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                คำนำหน้า 
-              </label>
-              <select
-                value={form.prefix}
-                onChange={(e) => setForm({...form, prefix: e.target.value})}
-                className={`input ${errors.prefix ? 'border-red-400 dark:border-red-500' : ''}`}
-              >
+            {/* Section: ข้อมูลส่วนตัว */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">ข้อมูลส่วนตัว</p>
+
+            <Field label="คำนำหน้า *" error={errors.prefix}>
+              <select value={form.prefix} onChange={e => set('prefix', e.target.value)} className={INPUT}>
                 <option value="">เลือกคำนำหน้า</option>
-                <option value="ด.ช.">ด.ช.</option>
-                <option value="ด.ญ.">ด.ญ.</option>
-                <option value="นาย">นาย</option>
-                <option value="นาง">นาง</option>
-                <option value="นางสาว">นางสาว</option>
+                {(isLeader
+                  ? ['นาย','นาง','นางสาว']
+                  : ['ด.ช.','ด.ญ.','นาย','นาง','นางสาว']
+                ).map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-              {errors.prefix && <p className="text-xs text-red-500 mt-1 ml-1">{errors.prefix}</p>}
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="ชื่อจริง *" error={errors.firstName}>
+                <input type="text" value={form.firstName} onChange={e => set('firstName', e.target.value)} className={INPUT} placeholder="ชื่อจริง" />
+              </Field>
+              <Field label="นามสกุล *" error={errors.lastName}>
+                <input type="text" value={form.lastName} onChange={e => set('lastName', e.target.value)} className={INPUT} placeholder="นามสกุล" />
+              </Field>
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ชื่อจริง 
-            </label>
-            <input
-              type="text"
-              value={form.firstName}
-              onChange={(e) => setForm({...form, firstName: e.target.value})}
-              className={`input ${errors.firstName ? 'border-red-400 dark:border-red-500' : ''}`}
-              placeholder="กรอกชื่อจริง"
-            />
-            {errors.firstName && <p className="text-xs text-red-500 mt-1 ml-1">{errors.firstName}</p>}
-          </div>
+            {!isLeader && (
+              <Field label="ชื่อเล่น *" error={errors.nickname}>
+                <input type="text" value={form.nickname} onChange={e => set('nickname', e.target.value)} className={INPUT} placeholder="ชื่อเล่น" />
+              </Field>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              นามสกุล 
-            </label>
-            <input
-              type="text"
-              value={form.lastName}
-              onChange={(e) => setForm({...form, lastName: e.target.value})}
-              className={`input ${errors.lastName ? 'border-red-400 dark:border-red-500' : ''}`}
-              placeholder="กรอกนามสกุล"
-            />
-            {errors.lastName && <p className="text-xs text-red-500 mt-1 ml-1">{errors.lastName}</p>}
-          </div>
+            <Field label="สถานศึกษา *" error={errors.school}>
+              <input type="text" value={form.school} onChange={e => set('school', e.target.value)} className={INPUT} placeholder="โรงเรียน / มหาวิทยาลัย" />
+            </Field>
 
-          <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  ชื่อเล่น 
-                </label>
-                <input
-                  type="text"
-                  value={form.nickname}
-                  onChange={(e) => setForm({...form, nickname: e.target.value})}
-                  className={`input ${errors.nickname ? 'border-red-400 dark:border-red-500' : ''}`}
-                  placeholder="กรอกชื่อเล่น"
-                />
-                {errors.nickname && <p className="text-xs text-red-500 mt-1 ml-1">{errors.nickname}</p>}
-              </div>
+            <Field label="เบอร์โทรศัพท์ *" error={errors.phone}>
+              <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} className={INPUT} placeholder="0812345678" />
+            </Field>
 
-          {form.role === 'SCOUT' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  วันเกิด
-                </label>
-                <input
-                  type="date"
-                  value={form.birthDate}
-                  onChange={(e) => setForm({...form, birthDate: e.target.value})}
-                  className="input"
-                  placeholder="เลือกวันเกิด"
-                />
-              </div>
+            {isLeader && (
+              <>
+                <Field label="จังหวัด">
+                  <select value={form.province} onChange={e => set('province', e.target.value)} className={INPUT}>
+                    <option value="">เลือกจังหวัด</option>
+                    {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </Field>
+                <Field label="อีเมล">
+                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
+                </Field>
+              </>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  สถานศึกษา 
-                </label>
-                <input
-                  type="text"
-                  value={form.school}
-                  onChange={(e) => setForm({...form, school: e.target.value})}
-                  className={`input ${errors.school ? 'border-red-400 dark:border-red-500' : ''}`}
-                  placeholder="กรอกสถานศึกษา"
-                />
-                {errors.school && <p className="text-xs text-red-500 mt-1 ml-1">{errors.school}</p>}
-              </div>
+            {!isLeader && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="วันเกิด">
+                    <input type="date" value={form.birthDate} onChange={e => set('birthDate', e.target.value)} className={INPUT} />
+                  </Field>
+                  <Field label="จังหวัด *" error={errors.province}>
+                    <select value={form.province} onChange={e => set('province', e.target.value)} className={INPUT}>
+                      <option value="">เลือกจังหวัด</option>
+                      {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </Field>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  จังหวัด 
-                </label>
-                <select
-                  value={form.province}
-                  onChange={(e) => setForm({...form, province: e.target.value})}
-                  className={`input ${errors.province ? 'border-red-400 dark:border-red-500' : ''}`}
-                >
-                  <option value="">เลือกจังหวัด</option>
-                  <option value="กรุงเทพมหานคร">กรุงเทพมหานคร</option>
-<option value="กระบี่">กระบี่</option>
-<option value="กาญจนบุรี">กาญจนบุรี</option>
-<option value="กาฬสินธุ์">กาฬสินธุ์</option>
-<option value="กำแพงเพชร">กำแพงเพชร</option>
-<option value="ขอนแก่น">ขอนแก่น</option>
-<option value="จันทบุรี">จันทบุรี</option>
-<option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option>
-<option value="ชลบุรี">ชลบุรี</option>
-<option value="ชัยนาท">ชัยนาท</option>
-<option value="ชัยภูมิ">ชัยภูมิ</option>
-<option value="ชุมพร">ชุมพร</option>
-<option value="เชียงราย">เชียงราย</option>
-<option value="เชียงใหม่">เชียงใหม่</option>
-<option value="ตรัง">ตรัง</option>
-<option value="ตราด">ตราด</option>
-<option value="ตาก">ตาก</option>
-<option value="นครนายก">นครนายก</option>
-<option value="นครปฐม">นครปฐม</option>
-<option value="นครพนม">นครพนม</option>
-<option value="นครราชสีมา">นครราชสีมา</option>
-<option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
-<option value="นครสวรรค์">นครสวรรค์</option>
-<option value="นนทบุรี">นนทบุรี</option>
-<option value="นราธิวาส">นราธิวาส</option>
-<option value="น่าน">น่าน</option>
-<option value="บึงกาฬ">บึงกาฬ</option>
-<option value="บุรีรัมย์">บุรีรัมย์</option>
-<option value="ปทุมธานี">ปทุมธานี</option>
-<option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option>
-<option value="ปราจีนบุรี">ปราจีนบุรี</option>
-<option value="ปัตตานี">ปัตตานี</option>
-<option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option>
-<option value="พะเยา">พะเยา</option>
-<option value="พังงา">พังงา</option>
-<option value="พัทลุง">พัทลุง</option>
-<option value="พิจิตร">พิจิตร</option>
-<option value="พิษณุโลก">พิษณุโลก</option>
-<option value="เพชรบุรี">เพชรบุรี</option>
-<option value="เพชรบูรณ์">เพชรบูรณ์</option>
-<option value="แพร่">แพร่</option>
-<option value="ภูเก็ต">ภูเก็ต</option>
-<option value="มหาสารคาม">มหาสารคาม</option>
-<option value="มุกดาหาร">มุกดาหาร</option>
-<option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option>
-<option value="ยโสธร">ยโสธร</option>
-<option value="ยะลา">ยะลา</option>
-<option value="ร้อยเอ็ด">ร้อยเอ็ด</option>
-<option value="ระนอง">ระนอง</option>
-<option value="ระยอง">ระยอง</option>
-<option value="ราชบุรี">ราชบุรี</option>
-<option value="ลพบุรี">ลพบุรี</option>
-<option value="ลำปาง">ลำปาง</option>
-<option value="ลำพูน">ลำพูน</option>
-<option value="เลย">เลย</option>
-<option value="ศรีสะเกษ">ศรีสะเกษ</option>
-<option value="สกลนคร">สกลนคร</option>
-<option value="สงขลา">สงขลา</option>
-<option value="สตูล">สตูล</option>
-<option value="สมุทรปราการ">สมุทรปราการ</option>
-<option value="สมุทรสงคราม">สมุทรสงคราม</option>
-<option value="สมุทรสาคร">สมุทรสาคร</option>
-<option value="สระแก้ว">สระแก้ว</option>
-<option value="สระบุรี">สระบุรี</option>
-<option value="สิงห์บุรี">สิงห์บุรี</option>
-<option value="สุโขทัย">สุโขทัย</option>
-<option value="สุพรรณบุรี">สุพรรณบุรี</option>
-<option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
-<option value="สุรินทร์">สุรินทร์</option>
-<option value="หนองคาย">หนองคาย</option>
-<option value="หนองบัวลำภู">หนองบัวลำภู</option>
-<option value="อ่างทอง">อ่างทอง</option>
-<option value="อำนาจเจริญ">อำนาจเจริญ</option>
-<option value="อุดรธานี">อุดรธานี</option>
-<option value="อุตรดิตถ์">อุตรดิตถ์</option>
-<option value="อุทัยธานี">อุทัยธานี</option>
-<option value="อุบลราชธานี">อุบลราชธานี</option>
+                <Field label="อีเมล">
+                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
+                </Field>
+
+                <Field label="การแพ้ (ถ้ามี)">
+                  <input type="text" value={form.allergies} onChange={e => set('allergies', e.target.value)} className={INPUT} placeholder="เช่น แพ้ถั่ว แพ้ยาเพนิซิลิน" />
+                </Field>
+
+                <Field label="โรคประจำตัว (ถ้ามี)">
+                  <input type="text" value={form.congenitalDisease} onChange={e => set('congenitalDisease', e.target.value)} className={INPUT} placeholder="เช่น โรคหอบหืด เบาหวาน" />
+                </Field>
+              </>
+            )}
+
+            {/* Section: ค่าย / หมู่ */}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">ค่าย {isLeader && '/ หมู่'}</p>
+
+            <Field label="ค่าย *" error={errors.campId}>
+              <select value={form.campId} onChange={e => set('campId', e.target.value)} className={INPUT}>
+                <option value="">เลือกค่าย</option>
+                {camps.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+
+            {isLeader && form.campId && (
+              <Field label="หมู่ *" error={errors.squadId}>
+                <select value={form.squadId} onChange={e => set('squadId', e.target.value)} className={INPUT}>
+                  <option value="">เลือกหมู่</option>
+                  {squads.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.troop?.name} - {s.name} {s.leader ? `(${s.leader.name})` : '(ว่างอยู่)'}
+                    </option>
+                  ))}
                 </select>
-                {errors.province && <p className="text-xs text-red-500 mt-1 ml-1">{errors.province}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    เบอร์โทรศัพท์ 
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => setForm({...form, phone: e.target.value})}
-                    className={`input ${errors.phone ? 'border-red-400 dark:border-red-500' : ''}`}
-                    placeholder="กรอกเบอร์โทรศัพท์"
-                  />
-                  {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    อีเมล <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({...form, email: e.target.value})}
-                    className="input"
-                    placeholder="กรอกอีเมล"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  การแพ้อาหารหรือสิ่งต่างๆ <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
-                </label>
-                <textarea
-                  value={form.allergies}
-                  onChange={(e) => setForm({...form, allergies: e.target.value})}
-                  className="input"
-                  rows={3}
-                  placeholder="กรอกข้อมูลการแพ้อาหารหรือสิ่งต่างๆ เช่น แพ้ถั่ว แพ้หอย แพ้ยา ฯลฯ"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  โรคประจำตัว <span className="text-gray-400">(ไม่จำเป็นต้องกรอก)</span>
-                </label>
-                <textarea
-                  value={form.congenitalDisease}
-                  onChange={(e) => setForm({...form, congenitalDisease: e.target.value})}
-                  className="input"
-                  rows={3}
-                  placeholder="กรอกข้อมูลโรคประจำตัว เช่น โรคเบาหวาน โรคความดันโลหิตสูง หอบหืด ฯลฯ"
-                />
-              </div>
-            </>
-          )}
-
-          {form.role === 'TROOP_LEADER' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  สถานศึกษา 
-                </label>
-                <input
-                  type="text"
-                  value={form.school}
-                  onChange={(e) => setForm({...form, school: e.target.value})}
-                  className={`input ${errors.school ? 'border-red-400 dark:border-red-500' : ''}`}
-                  placeholder="กรอกสถานศึกษา"
-                />
-                {errors.school && <p className="text-xs text-red-500 mt-1 ml-1">{errors.school}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  เบอร์โทรศัพท์ 
-                </label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({...form, phone: e.target.value})}
-                  className={`input ${errors.phone ? 'border-red-400 dark:border-red-500' : ''}`}
-                  placeholder="กรอกเบอร์โทรศัพท์"
-                />
-                {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
-              </div>
-            </>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ค่าย 
-            </label>
-            <select
-              value={form.campId}
-              onChange={(e) => setForm({...form, campId: e.target.value, squadId: ''})}
-              className={`input ${errors.campId ? 'border-red-400 dark:border-red-500' : ''}`}
-            >
-              <option value="">เลือกค่าย</option>
-              {camps.map(camp => (
-                <option key={camp.id} value={camp.id}>{camp.name}</option>
-              ))}
-            </select>
-            {errors.campId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.campId}</p>}
+              </Field>
+            )}
           </div>
 
-          {form.campId && form.role === 'TROOP_LEADER' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                หมู่ *
-              </label>
-              <select
-                value={form.squadId}
-                onChange={(e) => setForm({...form, squadId: e.target.value})}
-                className={`input ${errors.squadId ? 'border-red-400 dark:border-red-500' : ''}`}
-              >
-                <option value="">เลือกหมู่</option>
-                {squads.map(squad => (
-                  <option key={squad.id} value={squad.id}>
-                    {squad.troop.name} - {squad.name} {squad.leader ? `(${squad.leader.name})` : '(ยังไม่มีผู้กำกับ)'}
-                  </option>
-                ))}
-              </select>
-              {errors.squadId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.squadId}</p>}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4">
-            <button onClick={submit} disabled={createMutation.isLoading} className="flex-1 btn-primary">
+          {/* Footer */}
+          <div className="px-5 pb-6 flex gap-3">
+            <button
+              onClick={() => { setShowModal(false); setForm(EMPTY); setErrors({}) }}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={submit}
+              disabled={createMutation.isLoading}
+              className={`flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-md transition disabled:opacity-50 ${isLeader ? 'bg-scout-600 hover:bg-scout-700 shadow-scout-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}
+            >
               {createMutation.isLoading ? 'กำลังสร้าง...' : 'สร้างบัญชี'}
             </button>
-            <button onClick={closeForm} className="flex-1 btn-secondary">ยกเลิก</button>
           </div>
-        </div>
-      </div>
+        </Modal>
+      )}
     </div>
   )
 }

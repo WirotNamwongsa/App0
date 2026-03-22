@@ -12,10 +12,11 @@ router.use(authenticate)
 router.get('/my', requireRole('SCOUT'), async (req, res) => {
   const scout = await prisma.scout.findUnique({
     where: { userId: req.user.id },
-    include: {
-      squad: { include: { troop: { include: { camp: true } } } },
-      attendances: { include: { activity: true } }
-    }
+  include: {
+  squad: { include: { troop: { include: { camp: true } } } },
+  attendances: { include: { activity: true } },
+  user: { select: { prefix: true } }
+}
   })
   if (!scout) throw createError(404, 'ไม่พบข้อมูลลูกเสือ')
   res.json(scout)
@@ -98,6 +99,7 @@ router.patch('/:id/move', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res)
   await logAudit({ userId: req.user.id, action: 'MOVE_SCOUT', target: req.params.id, before: { squadId: before.squadId }, after: { squadId } })
   res.json(updated)
 })
+
 
 // DELETE /api/scouts/:id
 router.delete('/:id', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {

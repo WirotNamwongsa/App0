@@ -12,6 +12,7 @@ const navConfig = {
   TROOP_LEADER: [
     { to: '/leader/home', icon: Users, label: 'หมู่' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
+    { to: '/leader/profile', icon: User, label: 'โปรไฟล์' },
   ],
   SQUAD_LEADER: [
     { to: '/squad-leader/home', icon: Users, label: 'หมู่ของฉัน' },

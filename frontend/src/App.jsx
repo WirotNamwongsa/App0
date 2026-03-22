@@ -18,6 +18,7 @@ import LeaderHome from './pages/leader/Home'
 import LeaderMember from './pages/leader/Member'
 import LeaderReport from './pages/leader/Report'
 import LeaderSchedule from './pages/leader/Schedule'
+import LeaderProfile from './pages/leader/LeaderProfile'
 
 // Squad Leader
 import SquadLeaderHome from './pages/squadLeader/SquadLeaderHome'
@@ -85,6 +86,7 @@ export default function App() {
       <Route path="/leader/schedule" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderSchedule /></RequireAuth>} />
       <Route path="/leader/member/:id" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderMember /></RequireAuth>} />
       <Route path="/leader/report" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderReport /></RequireAuth>} />
+      <Route path="/leader/profile" element={<RequireAuth roles={['TROOP_LEADER']}><LeaderProfile /></RequireAuth>} />
 
       {/* Squad Leader */}
       <Route path="/squad-leader/home" element={<RequireAuth roles={['TROOP_LEADER']}><SquadLeaderHome /></RequireAuth>} />

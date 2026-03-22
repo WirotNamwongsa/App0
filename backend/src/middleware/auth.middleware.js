@@ -1,4 +1,3 @@
-// src/middleware/auth.middleware.js
 const jwt = require('jsonwebtoken');
 const prisma = require('../utils/prisma');
 
@@ -12,11 +11,17 @@ const authenticate = async (req, res, next) => {
     const token = header.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const account = await prisma.account.findUnique({
+    const account = await prisma.user.findUnique({
       where: { id: decoded.id },
       include: {
         camp: true,
-        patrolLeader: true,
+        leadingSquads: {          // ✅ เปลี่ยนจาก leadingSquad
+          include: {
+            troop: {
+              include: { camp: true }
+            }
+          }
+        },
         staffActivity: { include: { activity: true } },
       },
     });

@@ -11,7 +11,6 @@ export default function SquadLeaderAddScout() {
   const [squad, setSquad] = useState(null);
   const [availableScouts, setAvailableScouts] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [loadingScouts, setLoadingScouts] = useState(false);
   const [addingScout, setAddingScout] = useState(false);
 
   useEffect(() => {
@@ -25,8 +24,8 @@ export default function SquadLeaderAddScout() {
         squadLeaderApi.getMySquad(),
         squadLeaderApi.getAvailableScouts(),
       ]);
-      setSquad(squadData);
-      setAvailableScouts(scoutsData);
+      setSquad(squadData.data);
+      setAvailableScouts(scoutsData.data);
     } catch (err) {
       toast.error('โหลดข้อมูลไม่สำเร็จ');
     } finally {
@@ -110,7 +109,8 @@ export default function SquadLeaderAddScout() {
           </h2>
         </div>
 
-        {!availableScouts?.canAdd ? (
+        {/* ✅ เช็ค currentCount >= 8 แทน canAdd */}
+        {availableScouts?.currentCount >= 8 ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-3">
               <X size={32} className="text-red-600 dark:text-red-400" />

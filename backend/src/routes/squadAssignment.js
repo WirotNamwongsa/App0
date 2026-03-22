@@ -13,7 +13,7 @@ router.get('/available', async (req, res) => {
     }
 
     const squads = await prisma.squad.findMany({
-      where: { leaderId: null },
+      where: { leaders: { none: {} } },
       include: {
         troop: { include: { camp: true } }
       },
@@ -60,7 +60,7 @@ router.post('/assign-leader', async (req, res) => {
     // กำหนดผู้กำกับให้หมู่
     const updatedSquad = await prisma.squad.update({
       where: { id: squadId },
-      data: { leaderId: leaderId }
+      data: { leaders: { connect: { id: leaderId } } }
     })
 
     res.json({ 

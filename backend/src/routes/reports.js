@@ -61,7 +61,7 @@ router.get('/squad/:squadId', authenticate, async (req, res) => {
   if (req.user.role === 'TROOP_LEADER') {
     // ผู้กำกับหมู่สามารถเข้าถึงได้เฉพาะหมู่ที่ตัวเองดูแล
     const mySquad = await prisma.squad.findFirst({
-      where: { leaderId: req.user.id }
+      where: { leaders: { some: { id: req.user.id } } }
     })
     if (!mySquad || mySquad.id !== squadId) {
       return res.status(403).json({ error: 'คุณไม่มีสิทธิ์เข้าถึงข้อมูลหมู่นี้' })

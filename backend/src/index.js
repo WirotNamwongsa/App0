@@ -13,8 +13,7 @@ import attendanceRoutes from './routes/attendance.js'
 import adminRoutes from './routes/admin.js'
 import reportRoutes from './routes/reports.js'
 import squadRoutes from './routes/squads.js'
-
-
+import squadLeaderRoutes from './routes/squadLeader.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -48,8 +47,7 @@ app.use('/api/attendance', attendanceRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/reports', reportRoutes)
 app.use('/api/squads', squadRoutes)
-
-
+app.use('/api/squad-leader', squadLeaderRoutes)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }))
 

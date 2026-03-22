@@ -45,13 +45,15 @@ export const leaderApi = {
   updateScout: (id, data) => api.patch(`/leader/scouts/${id}`, data),
   getAvailableScouts: () => api.get('/leader/available-scouts'),
   addScoutToPatrol: (data) => api.post('/leader/add-scout', data),
+  getProfile: () => api.get('/leader/profile'),
+  updateProfile: (data) => api.patch('/leader/profile', data),
 };
 
 // Squad Leader
 export const squadLeaderApi = {
   getMySquad: () => api.get('/squad-leader/my-squad'),
   getAvailableScouts: () => api.get('/squad-leader/available-scouts'),
-  addScout: (data) => api.post('/squad-leader/add-scout', data),
+  addScout: (scoutId) => api.post('/squad-leader/add-scout', { scoutId }),
   updateScout: (id, data) => api.patch(`/squad-leader/scouts/${id}`, data),
   removeScout: (id) => api.delete(`/squad-leader/scouts/${id}`),
 };

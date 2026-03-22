@@ -34,68 +34,70 @@ model Troop {
 }
 
 model Squad {
-  id            String   @id @default(uuid())
-  name          String
-  number        Int
-  troopId       String
-  leaderId      String?  @unique
+  id              String   @id @default(uuid())
+  name            String
+  number          Int
+  troopId         String
   activityGroupId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  troop         Troop    @relation(fields: [troopId], references: [id])
-  leader        User?    @relation("SquadLeader", fields: [leaderId], references: [id])
-  scouts        Scout[]
-  schedules     Schedule[]
-  activityGroup ActivityGroup? @relation("SquadActivityGroup", fields: [activityGroupId], references: [id])
+  troop           Troop    @relation(fields: [troopId], references: [id])
+  leaders         User[]   @relation("SquadLeaders")   // ✅ เปลี่ยนเป็น many-to-many
+  scouts          Scout[]
+  schedules       Schedule[]
+  activityGroup   ActivityGroup? @relation("SquadActivityGroup", fields: [activityGroupId], references: [id])
 }
 
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  password     String
-  role         String
-  name         String
-  firstName    String?
-  lastName     String?
-  phone        String?
-  email        String?
-  school       String?
-  prefix       String?  // คำนำหน้า (เช่น ด.ช., ด.ญ., นาย, นางสาว)
-  campId       String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  username              String   @unique
+  password              String
+  role                  String
+  name                  String
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  email                 String?
+  school                String?
+  prefix                String?
+  province              String?
+  allergies             String?
+  congenitalDisease     String?
+  campId                String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  leadingSquad Squad?   @relation("SquadLeader")
-  staffActivity Activity? @relation("StaffActivity")
+  leadingSquads         Squad[]        @relation("SquadLeaders")  // ✅ เปลี่ยนเป็น many-to-many
+  staffActivity         Activity?      @relation("StaffActivity")
   managingActivityGroups ActivityGroup[] @relation("ActivityGroupManager")
-  auditLogs    AuditLog[]
-  scoutAccount Scout?   @relation("ScoutUser")
-  camp         Camp?     @relation(fields: [campId], references: [id])
+  auditLogs             AuditLog[]
+  scoutAccount          Scout?         @relation("ScoutUser")
+  camp                  Camp?          @relation(fields: [campId], references: [id])
 }
 
 model Scout {
-  id               String   @id @default(uuid())
-  scoutCode        String   @unique
-  firstName        String
-  lastName         String
-  nickname         String?
-  birthDate        DateTime?
-  school           String?
-  province         String?
-  phone            String?
-  email            String?
-  allergies        String?  // การแพ้อาหารหรือสิ่งต่างๆ
-  congenitalDisease String? // โรคประจำตัว
-  squadId          String?
-  userId           String?  @unique
-  qrData           String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                String   @id @default(uuid())
+  scoutCode         String   @unique
+  firstName         String
+  lastName          String
+  nickname          String?
+  birthDate         DateTime?
+  school            String?
+  province          String?
+  phone             String?
+  email             String?
+  allergies         String?
+  congenitalDisease String?
+  squadId           String?
+  userId            String?  @unique
+  qrData            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  squad            Squad?   @relation(fields: [squadId], references: [id])
-  user             User?    @relation("ScoutUser", fields: [userId], references: [id])
-  attendances      Attendance[]
+  squad             Squad?   @relation(fields: [squadId], references: [id])
+  user              User?    @relation("ScoutUser", fields: [userId], references: [id])
+  attendances       Attendance[]
 }
 
 model Activity {
@@ -131,34 +133,34 @@ model ActivityGroup {
 }
 
 model Schedule {
-  id            String   @id @default(uuid())
-  activityId    String
-  campId        String
-  squadId       String?
+  id              String   @id @default(uuid())
+  activityId      String
+  campId          String
+  squadId         String?
   activityGroupId String?
-  date          DateTime
-  slot          String   // "MORNING" | "AFTERNOON" | "EVENING"
-  createdAt     DateTime @default(now())
+  date            DateTime
+  slot            String
+  createdAt       DateTime @default(now())
 
-  activity      Activity     @relation(fields: [activityId], references: [id])
-  camp          Camp         @relation(fields: [campId], references: [id])
-  squad         Squad?       @relation(fields: [squadId], references: [id])
-  activityGroup ActivityGroup? @relation(fields: [activityGroupId], references: [id])
+  activity        Activity      @relation(fields: [activityId], references: [id])
+  camp            Camp          @relation(fields: [campId], references: [id])
+  squad           Squad?        @relation(fields: [squadId], references: [id])
+  activityGroup   ActivityGroup? @relation(fields: [activityGroupId], references: [id])
 
   @@unique([activityId, campId, squadId, date, slot])
 }
 
 model Attendance {
-  id         String     @id @default(uuid())
-  scoutId    String
-  activityId String
-  result     String     @default("PASS")
-  outOfSchedule Boolean @default(false)
-  scannedAt  DateTime   @default(now())
-  scannedBy  String?
+  id            String   @id @default(uuid())
+  scoutId       String
+  activityId    String
+  result        String   @default("PASS")
+  outOfSchedule Boolean  @default(false)
+  scannedAt     DateTime @default(now())
+  scannedBy     String?
 
-  scout      Scout    @relation(fields: [scoutId], references: [id])
-  activity   Activity @relation(fields: [activityId], references: [id])
+  scout         Scout    @relation(fields: [scoutId], references: [id])
+  activity      Activity @relation(fields: [activityId], references: [id])
 
   @@unique([scoutId, activityId])
 }

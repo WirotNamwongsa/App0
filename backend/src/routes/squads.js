@@ -13,7 +13,7 @@ router.get('/my-squad', async (req, res) => {
     }
 
     const squad = await prisma.squad.findFirst({
-      where: { leaderId: req.user.id },
+      where: { leaders: { some: { id: req.user.id } } },
       include: {
         troop: { include: { camp: true } },
         scouts: {

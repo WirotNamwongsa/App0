@@ -20,8 +20,10 @@ export default function ScoutSchedule() {
     { enabled: !!campId }
   )
 
-  const mySchedules = schedules.filter(s => s.squadId === squadId)
-
+  const mySchedules = schedules.filter(s => 
+  s.squadIds?.includes(squadId) || 
+  (s.activityGroup && s.activityGroup.squads?.some(sq => sq.id === squadId))
+)
   const grouped = {}
   mySchedules.forEach(s => {
     const dateKey = new Date(s.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })

@@ -17,46 +17,73 @@ router.get('/', async (req, res) => {
     where.date = { gte: d, lt: next }
   }
 
-  const schedules = await prisma.schedule.findMany({
-    where,
-    include: {
-      activity: true,
-      squad: { include: { troop: true } },
-      camp: true
-    },
-    orderBy: [{ date: 'asc' }, { slot: 'asc' }]
-  })
-
-  // Group schedules ที่มี activityId + date + slot + campId เดียวกัน → 1 object
-  const groupMap = new Map()
-
-  for (const s of schedules) {
-    const dateTs = new Date(s.date).getTime()
-    const key = `${s.activityId}__${isNaN(dateTs) ? s.date : dateTs}__${s.slot}__${s.campId}`
-
-    if (groupMap.has(key)) {
-      const existing = groupMap.get(key)
-      if (s.squad) {
-        existing.squadIds.push(s.squad.id)
-        existing.squads.push(s.squad)
+const schedules = await prisma.schedule.findMany({
+  where,
+  include: {
+    activity: true,
+    squad: { include: { troop: true } },
+    camp: true,
+    activityGroup: {
+      include: {
+        squads: { include: { troop: true } }
       }
-      existing._allIds.push(s.id)
-    } else {
-      groupMap.set(key, {
-        id: s.id,
-        _allIds: [s.id],
-        activityId: s.activityId,
-        activity: s.activity,
-        date: s.date,
-        slot: s.slot,
-        campId: s.campId,
-        camp: s.camp,
-        squadIds: s.squad ? [s.squad.id] : [],
-        squads: s.squad ? [s.squad] : [],
-        squad: s.squad,
-      })
     }
+  },
+  orderBy: [{ date: 'asc' }, { slot: 'asc' }]
+})
+
+const groupMap = new Map()
+for (const s of schedules) {
+  const dateTs = new Date(s.date).getTime()
+  const key = `${s.activityId}__${isNaN(dateTs) ? s.date : dateTs}__${s.slot}__${s.campId}`
+ 
+  if (groupMap.has(key)) {
+    const existing = groupMap.get(key)
+      
+    // จัดการกับ squad แบบเดิม
+    if (s.squad) {
+      existing.squadIds.push(s.squad.id)
+      existing.squads.push(s.squad)
+    }
+      
+    // 🏕️ จัดการกับ squads ใน activityGroup (ส่วนที่ต้องเพิ่ม!)
+    if (s.activityGroup && s.activityGroup.squads) {
+      s.activityGroup.squads.forEach(squad => {
+        if (!existing.squadIds.includes(squad.id)) {
+          existing.squadIds.push(squad.id)
+          existing.squads.push(squad)
+        }
+      })
+      existing.activityGroup = s.activityGroup
+    }
+      
+    existing._allIds.push(s.id)
+  } else {
+    // เริ่มต้นสร้าง group
+    const initialGroup = {
+      id: s.id,
+      _allIds: [s.id],
+      activityId: s.activityId,
+      activity: s.activity,
+      date: s.date,
+      slot: s.slot,
+      campId: s.campId,
+      camp: s.camp,
+      squadIds: s.squad ? [s.squad.id] : [],
+      squads: s.squad ? [s.squad] : [],
+      squad: s.squad,
+    }
+ 
+    // 🏕️ เพิ่ม squads จาก activityGroup (ส่วนที่ต้องเพิ่ม!)
+    if (s.activityGroup && s.activityGroup.squads) {
+      initialGroup.squadIds.push(...s.activityGroup.squads.map(sq => sq.id))
+      initialGroup.squads.push(...s.activityGroup.squads)
+      initialGroup.activityGroup = s.activityGroup
+    }
+ 
+    groupMap.set(key, initialGroup)
   }
+}
 
   const result = [...groupMap.values()]
   console.log('=== SCHEDULE DEBUG ===')

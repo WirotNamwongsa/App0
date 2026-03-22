@@ -25,7 +25,7 @@ router.get('/', requireRole('ADMIN'), async (req, res) => {
   res.json(camps)
 })
 
-// GET /api/camps/my - Camp Manager, Leader, Troop Leader ดูค่ายตัวเอง
+// GET /api/camps/my
 router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
   const campId = req.user.role === 'ADMIN' ? req.query.campId : req.user.campId
   if (!campId) throw createError(400, 'ไม่พบ campId')
@@ -36,7 +36,7 @@ router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER')
         include: {
           squads: {
             include: {
-              leader: { select: { id: true, name: true } },
+              leaders: { select: { id: true, name: true } },  // ✅
               _count: { select: { scouts: true } }
             }
           }
@@ -48,168 +48,146 @@ router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER')
   res.json(camp)
 })
 
-// POST /api/camps - Admin สร้างค่าย (พร้อมกอง 1 กอง และหมู่ 4 หมู่)
+// POST /api/camps
 router.post('/', requireRole('ADMIN'), async (req, res) => {
   const { name } = req.body
-  
+
   const camp = await prisma.camp.create({ data: { name } })
-  
+
   const troop = await prisma.troop.create({
-    data: { 
-      name: `กองที่ 1`, 
-      number: 1, 
-      campId: camp.id 
-    }
+    data: { name: `กองที่ 1`, number: 1, campId: camp.id }
   })
-  
+
   const squads = []
   for (let i = 1; i <= 4; i++) {
     const squad = await prisma.squad.create({
-      data: {
-        name: `หมู่ที่ ${i}`,
-        number: i,
-        troopId: troop.id
-      }
+      data: { name: `หมู่ที่ ${i}`, number: i, troopId: troop.id }
     })
     squads.push(squad)
   }
-  
-  await logAudit({ 
-    userId: req.user.id, 
-    action: 'CREATE_CAMP_WITH_STRUCTURE', 
-    target: camp.id, 
-    after: { camp, troop, squads } 
+
+  await logAudit({
+    userId: req.user.id,
+    action: 'CREATE_CAMP_WITH_STRUCTURE',
+    target: camp.id,
+    after: { camp, troop, squads }
   })
-  
+
   res.status(201).json({ camp, troop, squads })
 })
 
-// POST /api/camps/:campId/troops - สร้างกอง (พร้อมหมู่ 4 หมู่)
+// POST /api/camps/:campId/troops
 router.post('/:campId/troops', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { name, number } = req.body
-  
-  const troop = await prisma.troop.create({ 
-    data: { 
-      name, 
-      number: parseInt(number), 
-      campId: req.params.campId 
-    }
+
+  const troop = await prisma.troop.create({
+    data: { name, number: parseInt(number), campId: req.params.campId }
   })
-  
+
   const squads = []
   for (let i = 1; i <= 4; i++) {
     const squad = await prisma.squad.create({
-      data: {
-        name: `หมู่ที่ ${i}`,
-        number: i,
-        troopId: troop.id
-      }
+      data: { name: `หมู่ที่ ${i}`, number: i, troopId: troop.id }
     })
     squads.push(squad)
   }
-  
-  await logAudit({ 
-    userId: req.user.id, 
-    action: 'CREATE_TROOP_WITH_SQUADS', 
-    target: troop.id, 
+
+  await logAudit({
+    userId: req.user.id,
+    action: 'CREATE_TROOP_WITH_SQUADS',
+    target: troop.id,
     after: { troop, squads }
   })
-  
+
   res.status(201).json({ troop, squads })
 })
 
-// POST /api/camps/:campId/troops/:troopId/squads - สร้างหมู่
+// POST /api/camps/:campId/troops/:troopId/squads
 router.post('/:campId/troops/:troopId/squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { name, number, leaderId } = req.body
+  // ✅ ลบ leaderId ออกจาก create เพราะไม่มี field นี้แล้ว
   const squad = await prisma.squad.create({
-    data: { name, number: parseInt(number), troopId: req.params.troopId, leaderId: leaderId || null }
+    data: { name, number: parseInt(number), troopId: req.params.troopId }
   })
+  // ✅ ถ้ามี leaderId ให้ connect แทน
+  if (leaderId) {
+    await prisma.squad.update({
+      where: { id: squad.id },
+      data: { leaders: { connect: { id: leaderId } } }
+    })
+  }
   await logAudit({ userId: req.user.id, action: 'CREATE_SQUAD', target: squad.id, after: squad })
   res.status(201).json(squad)
 })
 
-// PATCH /api/camps/:campId/squads/:squadId - แก้ไขหมู่
+// PATCH /api/camps/:campId/squads/:squadId
 router.patch('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { name, leaderId } = req.body
+  // ✅ ลบ leaderId ออกจาก update เพราะไม่มี field นี้แล้ว
   const squad = await prisma.squad.update({
     where: { id: req.params.squadId },
-    data: { name, leaderId: leaderId || null }
+    data: {
+      name,
+      ...(leaderId ? { leaders: { connect: { id: leaderId } } } : {})
+    }
   })
   await logAudit({ userId: req.user.id, action: 'UPDATE_SQUAD', target: squad.id, after: squad })
   res.json(squad)
 })
 
-// DELETE /api/camps/:campId/troops/:troopId - ลบกอง
+// DELETE /api/camps/:campId/troops/:troopId
 router.delete('/:campId/troops/:troopId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const troop = await prisma.troop.findUnique({
     where: { id: req.params.troopId },
     include: { squads: true }
   })
-  
+
   if (!troop) throw createError(404, 'ไม่พบกอง')
-  
-  await prisma.squad.deleteMany({
-    where: { troopId: req.params.troopId }
-  })
-  
+
+  await prisma.squad.deleteMany({ where: { troopId: req.params.troopId } })
   await prisma.troop.delete({ where: { id: req.params.troopId } })
-  
-  await logAudit({ 
-    userId: req.user.id, 
-    action: 'DELETE_TROOP_WITH_SQUADS', 
-    target: req.params.troopId, 
-    before: troop 
+
+  await logAudit({
+    userId: req.user.id,
+    action: 'DELETE_TROOP_WITH_SQUADS',
+    target: req.params.troopId,
+    before: troop
   })
-  
+
   res.json({ message: 'ลบกองและหมู่ทั้งหมดสำเร็จ' })
 })
 
-// DELETE /api/camps/:campId - ลบค่าย
+// DELETE /api/camps/:campId
 router.delete('/:campId', requireRole('ADMIN'), async (req, res) => {
   const camp = await prisma.camp.findUnique({
     where: { id: req.params.campId },
-    include: { 
-      troops: { 
-        include: { squads: true } 
-      } 
-    }
+    include: { troops: { include: { squads: true } } }
   })
-  
+
   if (!camp) throw createError(404, 'ไม่พบค่าย')
-  
-  await prisma.schedule.deleteMany({
-    where: { campId: req.params.campId }
-  })
-  
-  await prisma.squad.deleteMany({
-    where: { 
-      troop: { campId: req.params.campId } 
-    }
-  })
-  
-  await prisma.troop.deleteMany({
-    where: { campId: req.params.campId }
-  })
-  
+
+  await prisma.schedule.deleteMany({ where: { campId: req.params.campId } })
+  await prisma.squad.deleteMany({ where: { troop: { campId: req.params.campId } } })
+  await prisma.troop.deleteMany({ where: { campId: req.params.campId } })
   await prisma.camp.delete({ where: { id: req.params.campId } })
-  
-  await logAudit({ 
-    userId: req.user.id, 
-    action: 'DELETE_CAMP_WITH_STRUCTURE', 
-    target: req.params.campId, 
-    before: camp 
+
+  await logAudit({
+    userId: req.user.id,
+    action: 'DELETE_CAMP_WITH_STRUCTURE',
+    target: req.params.campId,
+    before: camp
   })
-  
+
   res.json({ message: 'ลบค่ายและกอง/หมู่ทั้งหมดสำเร็จ' })
 })
 
-// DELETE /api/camps/:campId/squads/:squadId - ลบหมู่
+// DELETE /api/camps/:campId/squads/:squadId
 router.delete('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   await prisma.squad.delete({ where: { id: req.params.squadId } })
   res.json({ message: 'ลบหมู่สำเร็จ' })
 })
 
-// PATCH /api/camps/scouts/:scoutId/move - ย้ายลูกเสือ
+// PATCH /api/camps/scouts/:scoutId/move
 router.patch('/scouts/:scoutId/move', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { squadId } = req.body
   const scout = await prisma.scout.update({
@@ -220,7 +198,7 @@ router.patch('/scouts/:scoutId/move', requireRole('ADMIN', 'CAMP_MANAGER'), asyn
   res.json(scout)
 })
 
-// GET /api/camps/:campId/scouts - ดูลูกเสือในค่าย
+// GET /api/camps/:campId/scouts
 router.get('/:campId/scouts', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const scouts = await prisma.scout.findMany({
     where: { squad: { troop: { campId: req.params.campId } } },
@@ -229,20 +207,14 @@ router.get('/:campId/scouts', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, 
   res.json(scouts)
 })
 
-// GET /api/camps/:campId/squads - ดูหมู่ทั้งหมดในค่าย
+// GET /api/camps/:campId/squads
 router.get('/:campId/squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const squads = await prisma.squad.findMany({
     where: { troop: { campId: req.params.campId } },
     include: {
-      troop: {
-        select: { id: true, name: true, number: true }
-      },
-      leader: {
-        select: { id: true, name: true }
-      },
-      _count: {
-        select: { scouts: true }
-      }
+      troop: { select: { id: true, name: true, number: true } },
+      leaders: { select: { id: true, name: true } },  // ✅
+      _count: { select: { scouts: true } }
     },
     orderBy: [
       { troop: { number: 'asc' } },
