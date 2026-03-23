@@ -17,73 +17,70 @@ router.get('/', async (req, res) => {
     where.date = { gte: d, lt: next }
   }
 
-const schedules = await prisma.schedule.findMany({
-  where,
-  include: {
-    activity: true,
-    squad: { include: { troop: true } },
-    camp: true,
-    activityGroup: {
-      include: {
-        squads: { include: { troop: true } }
-      }
-    }
-  },
-  orderBy: [{ date: 'asc' }, { slot: 'asc' }]
-})
-
-const groupMap = new Map()
-for (const s of schedules) {
-  const dateTs = new Date(s.date).getTime()
-  const key = `${s.activityId}__${isNaN(dateTs) ? s.date : dateTs}__${s.slot}__${s.campId}`
- 
-  if (groupMap.has(key)) {
-    const existing = groupMap.get(key)
-      
-    // จัดการกับ squad แบบเดิม
-    if (s.squad) {
-      existing.squadIds.push(s.squad.id)
-      existing.squads.push(s.squad)
-    }
-      
-    // 🏕️ จัดการกับ squads ใน activityGroup (ส่วนที่ต้องเพิ่ม!)
-    if (s.activityGroup && s.activityGroup.squads) {
-      s.activityGroup.squads.forEach(squad => {
-        if (!existing.squadIds.includes(squad.id)) {
-          existing.squadIds.push(squad.id)
-          existing.squads.push(squad)
+  const schedules = await prisma.schedule.findMany({
+    where,
+    include: {
+      activity: true,
+      squad: { include: { troop: true } },
+      camp: true,
+      activityGroup: {
+        include: {
+          squads: { include: { troop: true } }
         }
-      })
-      existing.activityGroup = s.activityGroup
+      }
+    },
+    orderBy: [{ date: 'asc' }, { slot: 'asc' }]
+  })
+
+  const groupMap = new Map()
+  for (const s of schedules) {
+    const dateTs = new Date(s.date).getTime()
+    const key = `${s.activityId}__${isNaN(dateTs) ? s.date : dateTs}__${s.slot}__${s.campId}`
+
+    if (groupMap.has(key)) {
+      const existing = groupMap.get(key)
+
+      if (s.squad) {
+        existing.squadIds.push(s.squad.id)
+        existing.squads.push(s.squad)
+      }
+
+      if (s.activityGroup && s.activityGroup.squads) {
+        s.activityGroup.squads.forEach(squad => {
+          if (!existing.squadIds.includes(squad.id)) {
+            existing.squadIds.push(squad.id)
+            existing.squads.push(squad)
+          }
+        })
+        existing.activityGroup = s.activityGroup
+      }
+
+      existing._allIds.push(s.id)
+    } else {
+      const initialGroup = {
+        id: s.id,
+        _allIds: [s.id],
+        activityId: s.activityId,
+        activity: s.activity,
+        date: s.date,
+        slot: s.slot,
+        campId: s.campId,
+        camp: s.camp,
+        activityGroupId: s.activityGroupId,  // ✅ เพิ่ม
+        squadIds: s.squad ? [s.squad.id] : [],
+        squads: s.squad ? [s.squad] : [],
+        squad: s.squad,
+      }
+
+      if (s.activityGroup && s.activityGroup.squads) {
+        initialGroup.squadIds.push(...s.activityGroup.squads.map(sq => sq.id))
+        initialGroup.squads.push(...s.activityGroup.squads)
+        initialGroup.activityGroup = s.activityGroup
+      }
+
+      groupMap.set(key, initialGroup)
     }
-      
-    existing._allIds.push(s.id)
-  } else {
-    // เริ่มต้นสร้าง group
-    const initialGroup = {
-      id: s.id,
-      _allIds: [s.id],
-      activityId: s.activityId,
-      activity: s.activity,
-      date: s.date,
-      slot: s.slot,
-      campId: s.campId,
-      camp: s.camp,
-      squadIds: s.squad ? [s.squad.id] : [],
-      squads: s.squad ? [s.squad] : [],
-      squad: s.squad,
-    }
- 
-    // 🏕️ เพิ่ม squads จาก activityGroup (ส่วนที่ต้องเพิ่ม!)
-    if (s.activityGroup && s.activityGroup.squads) {
-      initialGroup.squadIds.push(...s.activityGroup.squads.map(sq => sq.id))
-      initialGroup.squads.push(...s.activityGroup.squads)
-      initialGroup.activityGroup = s.activityGroup
-    }
- 
-    groupMap.set(key, initialGroup)
   }
-}
 
   const result = [...groupMap.values()]
   console.log('=== SCHEDULE DEBUG ===')
@@ -97,8 +94,10 @@ for (const s of schedules) {
 
 // POST /api/schedules
 router.post('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
-  const { activityId, campId, squadIds, date, slot } = req.body
-  const targetCampId = req.user.role === 'CAMP_MANAGER' || req.user.role === 'LEADER' || req.user.role === 'TROOP_LEADER' ? req.user.campId : campId
+  const { activityId, campId, squadIds, activityGroupId, date, slot } = req.body  // ✅ รับ activityGroupId
+  const targetCampId = req.user.role === 'CAMP_MANAGER' || req.user.role === 'LEADER' || req.user.role === 'TROOP_LEADER'
+    ? req.user.campId
+    : campId
 
   const campScoutsCount = await prisma.scout.count({
     where: { squad: { troop: { campId: targetCampId } } }
@@ -116,6 +115,7 @@ router.post('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'),
         activityId,
         campId: targetCampId,
         squadId,
+        activityGroupId: activityGroupId || null,  // ✅ เก็บ activityGroupId
         date: new Date(date),
         slot,
       })),
@@ -127,6 +127,7 @@ router.post('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'),
       data: {
         activityId,
         campId: targetCampId,
+        activityGroupId: activityGroupId || null,  // ✅ เก็บ activityGroupId
         date: new Date(date),
         slot,
       }
@@ -135,13 +136,12 @@ router.post('/', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'),
   }
 })
 
-// PUT /api/schedules/:id  (id = representative id ของ group)
+// PUT /api/schedules/:id
 router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
   try {
     const { id } = req.params
-    const { activityId, date, slot, squadIds, campId } = req.body
+    const { activityId, date, slot, squadIds, campId, activityGroupId } = req.body  // ✅ รับ activityGroupId
 
-    // หา schedule ตัวแทนก่อน เพื่อรู้ activityId+date+slot+campId เดิม
     const existing = await prisma.schedule.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ error: 'Schedule not found' })
@@ -151,8 +151,8 @@ router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'
     const targetActivityId = activityId || existing.activityId
     const targetDate = date ? new Date(date) : existing.date
     const targetSlot = slot || existing.slot
+    const targetGroupId = activityGroupId !== undefined ? activityGroupId : existing.activityGroupId  // ✅
 
-    // ลบ schedule ทั้งหมดที่เป็น group เดียวกัน (activityId+date+slot+campId เดิม)
     await prisma.schedule.deleteMany({
       where: {
         activityId: existing.activityId,
@@ -162,7 +162,6 @@ router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'
       }
     })
 
-    // สร้างใหม่ด้วยข้อมูลใหม่
     let result
     if (squadIds && squadIds.length > 0) {
       const created = await prisma.schedule.createMany({
@@ -170,13 +169,13 @@ router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'
           activityId: targetActivityId,
           campId: targetCampId,
           squadId,
+          activityGroupId: targetGroupId || null,  // ✅
           date: targetDate,
           slot: targetSlot,
         })),
         skipDuplicates: true
       })
 
-      // ดึงข้อมูลใหม่กลับมาส่ง response
       const newSchedules = await prisma.schedule.findMany({
         where: {
           activityId: targetActivityId,
@@ -193,6 +192,7 @@ router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'
       result = {
         id: newSchedules[0]?.id,
         activityId: targetActivityId,
+        activityGroupId: targetGroupId || null,  // ✅
         date: targetDate,
         slot: targetSlot,
         campId: targetCampId,
@@ -205,6 +205,7 @@ router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'
         data: {
           activityId: targetActivityId,
           campId: targetCampId,
+          activityGroupId: targetGroupId || null,  // ✅
           date: targetDate,
           slot: targetSlot,
         },
@@ -220,13 +221,12 @@ router.put('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'
   }
 })
 
-// DELETE /api/schedules/:id — ลบทั้ง group
+// DELETE /api/schedules/:id
 router.delete('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
   try {
     const existing = await prisma.schedule.findUnique({ where: { id: req.params.id } })
     if (!existing) return res.status(404).json({ error: 'Schedule not found' })
 
-    // ลบทั้ง group (activityId+date+slot+campId เดียวกัน)
     const deleted = await prisma.schedule.deleteMany({
       where: {
         activityId: existing.activityId,

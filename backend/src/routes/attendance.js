@@ -97,118 +97,102 @@ router.get('/stats/:activityId', authenticate, async (req, res) => {
   res.json({ total, scanned, scheduled: scheduledCount })
 })
 
-// GET /api/attendance/schedule/:scheduleId/participants - ดูรายชื่อลูกเสือที่ควรเข้าร่วมในช่วงเวลานั้น
-router.get('/schedule/:scheduleId/participants', authenticate, async (req, res) => {
+// GET /api/attendance/schedule/:scheduleId/participants
+router.get('/schedule/:scheduleId/participants', authenticate, async (req, res, next) => {
   try {
     const { scheduleId } = req.params
-    
-    console.log("🔍 Looking for schedule with ID:", scheduleId)
-    
-    // ดึงข้อมูลตารางกิจกรรม
+
     const schedule = await prisma.schedule.findUnique({
       where: { id: scheduleId },
       include: {
         activity: true,
         camp: true,
-        squad: { 
-          include: { 
-            troop: true,
-            scouts: {
-              include: {
-                attendances: {
-                  include: { activity: true }
-                }
-              }
-            }
+        squad: { include: { troop: true } },
+        activityGroup: {
+          include: {
+            squads: { include: { troop: true } }  // ✅ ดึงทุกหมู่ในกลุ่มกิจกรรม
           }
         }
       }
     })
-    
-    console.log("📋 Found schedule:", schedule ? "YES" : "NO")
-    
-    if (!schedule) {
-      console.log("❌ Schedule not found with ID:", scheduleId)
-      throw createError(404, "ไม่พบตารางกิจกรรม")
-    }
-    
-    console.log("🏕️ Schedule type:", schedule.squadId ? "SQUAD" : "CAMP")
-    console.log("🆔 Activity ID:", schedule.activityId)
-    console.log("🏕️ Camp ID:", schedule.campId)
-    
-    // ถ้าเป็นกิจกรรมระดับค่าย (ไม่มี squadId) ให้ดึงลูกเสือทั้งหมดในค่าย
+
+    if (!schedule) throw createError(404, 'ไม่พบตารางกิจกรรม')
+
     let participants = []
-    if (schedule.squadId) {
-      console.log("Processing squad-level schedule")
-      // กิจกรรมระดับหมู่
-      participants = schedule.squad.scouts.map(scout => {
-        // กรอง attendances ที่ตรงกับ activityId
-        const attendances = scout.attendances.filter(att => att.activityId === schedule.activityId)
-        
-        return {
-          ...scout,
-          status: attendances.length > 0 ? "scanned" : "not_scanned",
-          scannedAt: attendances.length > 0 ? attendances[0].scannedAt : null
-        }
-      })
-    } else if (schedule.campId) {
-      console.log("Processing camp-level schedule")
-      // กิจกรรมระดับค่าย - ดึงลูกเสือทั้งหมดในค่าย
-      const allScoutsInCamp = await prisma.scout.findMany({
-        where: {
-          squad: {
-            troop: { campId: schedule.campId }
-          }
-        },
+
+    if (schedule.activityGroupId && schedule.activityGroup) {
+      // ✅ กิจกรรมระดับกลุ่ม — ดึงลูกเสือทุกหมู่ในกลุ่ม
+      const squadIds = schedule.activityGroup.squads.map(s => s.id)
+
+      const scouts = await prisma.scout.findMany({
+        where: { squadId: { in: squadIds } },
         include: {
           squad: { include: { troop: true } },
           attendances: {
-            where: { activityId: schedule.activityId },
-            include: { activity: true }
+            where: { activityId: schedule.activityId }
+          }
+        },
+        orderBy: { firstName: 'asc' }
+      })
+
+      participants = scouts.map(scout => ({
+        ...scout,
+        status: scout.attendances.length > 0 ? 'scanned' : 'not_scanned',
+        scannedAt: scout.attendances[0]?.scannedAt || null
+      }))
+
+    } else if (schedule.squadId) {
+      // กิจกรรมระดับหมู่เดียว
+      const scouts = await prisma.scout.findMany({
+        where: { squadId: schedule.squadId },
+        include: {
+          squad: { include: { troop: true } },
+          attendances: {
+            where: { activityId: schedule.activityId }
           }
         }
       })
-      
-      console.log("Found scouts in camp:", allScoutsInCamp.length)
-      
-      participants = allScoutsInCamp.map(scout => {
-        // กรอง attendances ที่ตรงกับ activityId
-        const attendances = scout.attendances.filter(att => att.activityId === schedule.activityId)
-        
-        return {
-          ...scout,
-          status: attendances.length > 0 ? "scanned" : "not_scanned",
-          scannedAt: attendances.length > 0 ? attendances[0].scannedAt : null
+
+      participants = scouts.map(scout => ({
+        ...scout,
+        status: scout.attendances.length > 0 ? 'scanned' : 'not_scanned',
+        scannedAt: scout.attendances[0]?.scannedAt || null
+      }))
+
+    } else if (schedule.campId) {
+      // กิจกรรมระดับค่าย
+      const scouts = await prisma.scout.findMany({
+        where: { squad: { troop: { campId: schedule.campId } } },
+        include: {
+          squad: { include: { troop: true } },
+          attendances: {
+            where: { activityId: schedule.activityId }
+          }
         }
       })
-    } else {
-      console.log("No squadId or campId found in schedule")
+
+      participants = scouts.map(scout => ({
+        ...scout,
+        status: scout.attendances.length > 0 ? 'scanned' : 'not_scanned',
+        scannedAt: scout.attendances[0]?.scannedAt || null
+      }))
     }
-  
-  // จัดเรียงตามสถานะ (ที่สแกนแล้วไปก่อน)
-  participants.sort((a, b) => {
-    if (a.status === "scanned" && b.status === "not_scanned") return -1
-    if (a.status === "not_scanned" && b.status === "scanned") return 1
-    return 0
-  })
-  
-  const stats = {
-    total: participants.length,
-    scanned: participants.filter(p => p.status === "scanned").length,
-    notScanned: participants.filter(p => p.status === "not_scanned").length
-  }
-  
-  console.log("📤 Sending response:", {
-    schedule: schedule ? "YES" : "NO",
-    participants: participants.length,
-    stats
-  })
-  
-  res.json({
-    schedule,
-    participants,
-    stats
-  })
+
+    // เรียงลำดับ scanned ก่อน
+    participants.sort((a, b) => {
+      if (a.status === 'scanned' && b.status !== 'scanned') return -1
+      if (a.status !== 'scanned' && b.status === 'scanned') return 1
+      return 0
+    })
+
+    const stats = {
+      total: participants.length,
+      scanned: participants.filter(p => p.status === 'scanned').length,
+      notScanned: participants.filter(p => p.status === 'not_scanned').length
+    }
+
+    res.json({ schedule, participants, stats })
+
   } catch (error) {
     console.error('Error in schedule participants:', error)
     next(error)

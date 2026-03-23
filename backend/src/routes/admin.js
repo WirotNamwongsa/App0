@@ -158,16 +158,19 @@ router.patch('/accounts/:id', async (req, res) => {
 
 // DELETE /api/admin/accounts/:id
 router.delete('/accounts/:id', async (req, res) => {
-  // ✅ เปลี่ยนจาก updateMany leaderId เป็น disconnect many-to-many
+  // ✅ ลบ AuditLog ก่อน
+  await prisma.auditLog.deleteMany({ where: { userId: req.params.id } })
+
+  // ✅ disconnect ออกจากหมู่ทั้งหมด
   await prisma.user.update({
     where: { id: req.params.id },
-    data: {
-      leadingSquads: { set: [] }  // ✅ disconnect ออกจากหมู่ทั้งหมดก่อนลบ
-    }
+    data: { leadingSquads: { set: [] } }
   })
+
   await prisma.scout.deleteMany({ where: { userId: req.params.id } })
   await prisma.activity.updateMany({ where: { staffId: req.params.id }, data: { staffId: null } })
   await prisma.user.delete({ where: { id: req.params.id } })
+
   res.json({ message: 'ลบบัญชีสำเร็จ' })
 })
 
