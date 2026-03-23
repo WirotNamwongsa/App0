@@ -29,6 +29,7 @@ router.get('/', requireRole('ADMIN'), async (req, res) => {
 router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER'), async (req, res) => {
   const campId = req.user.role === 'ADMIN' ? req.query.campId : req.user.campId
   if (!campId) throw createError(400, 'ไม่พบ campId')
+
   const camp = await prisma.camp.findUnique({
     where: { id: campId },
     include: {
@@ -36,7 +37,11 @@ router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER')
         include: {
           squads: {
             include: {
-              leaders: { select: { id: true, name: true } },  // ✅
+              leaders: { select: { id: true, name: true } },
+              scouts: {
+                select: { school: true },
+                take: 1  // เอาแค่คนแรกเพื่อดูสถานศึกษาของหมู่
+              },
               _count: { select: { scouts: true } }
             }
           }
@@ -44,6 +49,7 @@ router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER')
       }
     }
   })
+
   if (!camp) throw createError(404, 'ไม่พบค่าย')
   res.json(camp)
 })
@@ -114,17 +120,18 @@ router.post('/:campId/troops', requireRole('ADMIN', 'CAMP_MANAGER'), async (req,
 // POST /api/camps/:campId/troops/:troopId/squads
 router.post('/:campId/troops/:troopId/squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { name, number, leaderId } = req.body
-  // ✅ ลบ leaderId ออกจาก create เพราะไม่มี field นี้แล้ว
+
   const squad = await prisma.squad.create({
     data: { name, number: parseInt(number), troopId: req.params.troopId }
   })
-  // ✅ ถ้ามี leaderId ให้ connect แทน
+
   if (leaderId) {
     await prisma.squad.update({
       where: { id: squad.id },
-      data: { leaders: { connect: { id: leaderId } } }
+      data: { leaderId }
     })
   }
+
   await logAudit({ userId: req.user.id, action: 'CREATE_SQUAD', target: squad.id, after: squad })
   res.status(201).json(squad)
 })
@@ -132,14 +139,15 @@ router.post('/:campId/troops/:troopId/squads', requireRole('ADMIN', 'CAMP_MANAGE
 // PATCH /api/camps/:campId/squads/:squadId
 router.patch('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { name, leaderId } = req.body
-  // ✅ ลบ leaderId ออกจาก update เพราะไม่มี field นี้แล้ว
+
   const squad = await prisma.squad.update({
     where: { id: req.params.squadId },
     data: {
       name,
-      ...(leaderId ? { leaders: { connect: { id: leaderId } } } : {})
+      ...(leaderId ? { leaderId } : {})
     }
   })
+
   await logAudit({ userId: req.user.id, action: 'UPDATE_SQUAD', target: squad.id, after: squad })
   res.json(squad)
 })
@@ -222,7 +230,11 @@ router.get('/:campId/squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, 
     where: { troop: { campId: req.params.campId } },
     include: {
       troop: { select: { id: true, name: true, number: true } },
-      leaders: { select: { id: true, name: true } },  // ✅
+      leaders: { select: { id: true, name: true } },
+      scouts: {
+        select: { school: true },
+        take: 1
+      },
       _count: { select: { scouts: true } }
     },
     orderBy: [

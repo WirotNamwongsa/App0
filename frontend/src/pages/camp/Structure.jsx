@@ -1,137 +1,106 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
-import { Plus, ChevronRight, Trash2, LogOut, Users, Building2, Shield, Star, X, TrendingUp, Search } from 'lucide-react'
+import { Plus, ChevronRight, Users, Building2, Star, X, TrendingUp, Search } from 'lucide-react'
 
-export default function CampStructure() {
-  const { user, logout } = useAuthStore()
-  const qc = useQueryClient()
-  const [expanded, setExpanded] = useState({})
-  const [showAddSquad, setShowAddSquad] = useState(null)
-  const [squadForm, setSquadForm] = useState({ name: '', number: '' })
-  const [showStatsModal, setShowStatsModal] = useState(null) // 'troops', 'squads', 'scouts'
-  const [searchQuery, setSearchQuery] = useState('')
-
-  const handleLogout = () => {
-    logout()
-  }
-
-  const { data: camp } = useQuery('camp-my', () => {
-    console.log('Structure: calling /camps/my');
-    return api.get('/camps/my');
-  })
-  
-  // Debug the camp data
-  React.useEffect(() => {
-    if (camp) {
-      console.log('Structure: camp data received:', camp);
-      console.log('Structure: camp.troops:', camp.troops);
-      console.log('Structure: camp.troops length:', camp.troops?.length);
-      
-      // Debug each troop
-      camp.troops?.forEach((troop, index) => {
-        console.log(`Troop ${index}:`, {
-          id: troop.id,
-          number: troop.number,
-          name: troop.name,
-          numberType: typeof troop.number,
-          nameType: typeof troop.name
-        });
-      });
-    }
-  }, [camp]);
-  const { data: scouts } = useQuery('camp-scouts', () => api.get('/scouts?campId=' + (user?.campId || 'camp-a')))
-
-  const addSquadMutation = useMutation(
-    ({ troopId }) => api.post(`/camps/${user.campId}/troops/${troopId}/squads`, squadForm),
-    { onSuccess: () => { qc.invalidateQueries('camp-my'); setShowAddSquad(null); toast.success('เพิ่มหมู่สำเร็จ') } }
-  )
-
-  // ── palette ─────────────────────────────────────────────────────────────────
-  const TROOP_COLORS = [
-    { bg: 'from-emerald-500 to-teal-600',    light: 'bg-emerald-50 dark:bg-emerald-900/20', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' },
-    { bg: 'from-green-500 to-emerald-600',    light: 'bg-green-50 dark:bg-green-900/20', badge: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' },
-    { bg: 'from-teal-500 to-cyan-600',        light: 'bg-teal-50 dark:bg-teal-900/20', badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300' },
-    { bg: 'from-lime-500 to-green-600',       light: 'bg-lime-50 dark:bg-lime-900/20', badge: 'bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300' },
-    { bg: 'from-green-600 to-emerald-700',    light: 'bg-green-50 dark:bg-green-900/20', badge: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' },
-  ]
-  const colorOf = (idx) => TROOP_COLORS[idx % TROOP_COLORS.length]
-
-  // ── stats calculation ─────────────────────────────────────────────────────
-  const totalTroops = camp?.troops?.length || 0
-  const totalSquads = camp?.troops?.reduce((sum, troop) => sum + (troop.squads?.length || 0), 0) || 0
-  const totalScouts = camp?.troops?.reduce((sum, troop) => 
-    sum + (troop.squads?.reduce((squadSum, squad) => squadSum + (squad._count?.scouts || 0), 0) || 0), 0
-  ) || 0
-
-  // ── shared modal wrapper ─────────────────────────────────────────────────────
-  const Modal = ({ children, onClose }) => (
+// ── Sub-components outside main to prevent issues ────────────────────────────
+function Modal({ children, onClose }) {
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-white dark:bg-scout-700 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {children}
       </div>
     </div>
   )
+}
 
-  const ModalHeader = ({ title, onClose }) => (
-    <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+function ModalHeader({ title, onClose }) {
+  return (
+    <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-scout-600">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
-      <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+      <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-scout-600 text-gray-400 transition-colors">
         <X size={18} />
       </button>
     </div>
   )
+}
 
-  const inputCls = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
+const INPUT_CLS = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 bg-gray-50 dark:bg-scout-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
 
-  // ── main render ──────────────────────────────────────────────────────────────
+const TROOP_COLORS = [
+  { bg: 'from-emerald-500 to-teal-600' },
+  { bg: 'from-green-500 to-emerald-600' },
+  { bg: 'from-teal-500 to-cyan-600' },
+  { bg: 'from-lime-500 to-green-600' },
+  { bg: 'from-green-600 to-emerald-700' },
+]
+const colorOf = (idx) => TROOP_COLORS[idx % TROOP_COLORS.length]
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function CampStructure() {
+  const { user } = useAuthStore()
+  const qc = useQueryClient()
+  const [expanded, setExpanded] = useState({})
+  const [showAddSquad, setShowAddSquad] = useState(null)
+  const [squadForm, setSquadForm] = useState({ name: '', number: '' })
+  const [showStatsModal, setShowStatsModal] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [viewingSquad, setViewingSquad] = useState(null)
+
+  const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
+  const { data: scouts } = useQuery('camp-scouts', () => api.get('/scouts?campId=' + (user?.campId || '')))
+  const { data: squadScouts = [], isLoading: loadingSquadScouts } = useQuery(
+    ['squad-scouts', viewingSquad?.id],
+    () => api.get(`/scouts?squadId=${viewingSquad.id}`),
+    { enabled: !!viewingSquad }
+  )
+
+  const addSquadMutation = useMutation(
+    ({ troopId }) => api.post(`/camps/${user.campId}/troops/${troopId}/squads`, squadForm),
+    {
+      onSuccess: () => {
+        qc.invalidateQueries('camp-my')
+        setShowAddSquad(null)
+        setSquadForm({ name: '', number: '' })
+        toast.success('เพิ่มหมู่สำเร็จ')
+      }
+    }
+  )
+
+  const totalTroops = camp?.troops?.length || 0
+  const totalSquads = camp?.troops?.reduce((sum, t) => sum + (t.squads?.length || 0), 0) || 0
+  const totalScouts = camp?.troops?.reduce((sum, t) =>
+    sum + (t.squads?.reduce((s2, sq) => s2 + (sq._count?.scouts || 0), 0) || 0), 0
+  ) || 0
+
   return (
     <div className="page">
-      {/* ── Header bar ── */}
+
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">โครงสร้างค่าย</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            จัดการกองและหมู่ในค่ายของคุณ
-          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">จัดการกองและหมู่ในค่ายของคุณ</p>
         </div>
       </div>
 
-      {/* ── Summary strip ── */}
+      {/* Summary strip */}
       <div className="grid grid-cols-3 gap-3 mb-7">
         {[
-          { 
-            label: 'กองทั้งหมด', 
-            value: totalTroops, 
-            icon: <Building2 size={16} />,
-            type: 'troops',
-            detail: `${totalTroops} กอง · ค่าย ${camp?.name || 'ไม่ระบุ'}`
-          },
-          { 
-            label: 'หมู่ทั้งหมด', 
-            value: totalSquads, 
-            icon: <Users     size={16} />,
-            type: 'squads',
-            detail: `เฉลี่ย ${totalTroops > 0 ? (totalSquads / totalTroops).toFixed(1) : 0} หมู่/กอง`
-          },
-          { 
-            label: 'ลูกเสือทั้งหมด', 
-            value: totalScouts, 
-            icon: <Star      size={16} />,
-            type: 'scouts',
-            detail: `เฉลี่ย ${totalSquads > 0 ? (totalScouts / totalSquads).toFixed(1) : 0} คน/หมู่`
-          },
-        ].map((stat) => (
+          { label: 'กองทั้งหมด',    value: totalTroops, icon: <Building2 size={16} />, type: 'troops' },
+          { label: 'หมู่ทั้งหมด',   value: totalSquads, icon: <Users     size={16} />, type: 'squads' },
+          { label: 'ลูกเสือทั้งหมด', value: totalScouts, icon: <Star      size={16} />, type: 'scouts' },
+        ].map(stat => (
           <button
             key={stat.label}
             onClick={() => setShowStatsModal(stat.type)}
-            className="group rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-scout-200 dark:hover:border-scout-800 transition-all duration-200 cursor-pointer"
+            className="group rounded-2xl border border-gray-100 dark:border-scout-600 bg-white dark:bg-scout-800 px-4 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 text-scout-600 dark:text-scout-400 flex items-center justify-center flex-shrink-0 group-hover:bg-scout-200 dark:group-hover:bg-scout-800 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 text-scout-600 dark:text-scout-400 flex items-center justify-center flex-shrink-0">
               {stat.icon}
             </div>
             <div className="flex-1 text-left">
@@ -143,113 +112,106 @@ export default function CampStructure() {
         ))}
       </div>
 
-      {/* ── Troops list ── */}
+      {/* Troops list */}
       <div className="space-y-4">
         {camp?.troops?.map((troop, idx) => {
           const col = colorOf(idx)
-          const troopScouts = troop.squads?.reduce((sum, squad) => sum + (squad._count?.scouts || 0), 0) || 0
-          
+          const troopScouts = troop.squads?.reduce((s, sq) => s + (sq._count?.scouts || 0), 0) || 0
+
           return (
-            <div
-              key={troop.id}
-              className="group relative rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
-            >
-              {/* left accent bar */}
+            <div key={troop.id} className="relative rounded-2xl border border-gray-100 dark:border-scout-600 bg-white dark:bg-scout-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${col.bg}`} />
 
               <div className="pl-5 pr-5 py-5">
-                {/* troop header */}
+                {/* Troop header */}
                 <button
                   onClick={() => setExpanded(e => ({ ...e, [troop.id]: !e[troop.id] }))}
-                  className="w-full flex items-center justify-between text-left group"
+                  className="w-full flex items-center justify-between text-left"
                 >
                   <div className="flex items-center gap-4">
-                    {/* avatar */}
                     <div className={`w-12 h-12 flex-shrink-0 rounded-xl bg-gradient-to-br ${col.bg} flex items-center justify-center shadow-lg`}>
                       <span className="text-white text-xl font-bold">{troop.number}</span>
                     </div>
-                    
-                    {/* info */}
                     <div>
                       <div className="flex flex-wrap items-baseline gap-2 mb-1">
                         <h3 className="text-base font-bold text-gray-900 dark:text-white">กอง {troop.number}</h3>
-                        <span className="text-xs text-gray-400 dark:text-gray-500">· {troop.name || 'ไม่ระบุชื่อ'}</span>
+                        <span className="text-xs text-gray-400">· {troop.name || 'ไม่ระบุชื่อ'}</span>
                       </div>
-                      
-                      {/* stats pills */}
                       <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                          <Users size={11} />
-                          {troop.squads?.length || 0} หมู่
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-scout-900/40 text-gray-600 dark:text-gray-300">
+                          <Users size={11} /> {troop.squads?.length || 0} หมู่
                         </span>
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                          <Star size={11} />
-                          {troopScouts} คน
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-scout-900/40 text-gray-600 dark:text-gray-300">
+                          <Star size={11} /> {troopScouts} คน
                         </span>
                       </div>
                     </div>
                   </div>
-                  
-                  <ChevronRight 
-                    size={20} 
-                    className={`text-gray-400 transition-transform duration-200 ${expanded[troop.id] ? 'rotate-90' : ''}`} 
+                  <ChevronRight
+                    size={20}
+                    className={`text-gray-400 transition-transform duration-200 ${expanded[troop.id] ? 'rotate-90' : ''}`}
                   />
                 </button>
 
-                {/* expanded content */}
+                {/* Expanded squads */}
                 {expanded[troop.id] && (
-                  <div className="mt-4 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-4">
-                    {/* squad list */}
+                  <div className="mt-4 space-y-3 border-t border-gray-100 dark:border-scout-600 pt-4">
                     <div className="space-y-2">
-                      {troop.squads?.map((squad) => (
-                        <div 
-                          key={squad.id} 
-                          className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
-                              <Users size={14} className="text-scout-500" />
+                      {troop.squads?.map(squad => {
+                        // หา school จากลูกเสือในหมู่ (ถ้า backend ส่งมา) หรือจาก leader
+                        const school = squad.scouts?.[0]?.school || null
+
+                        return (
+                          <button key={squad.id} onClick={() => setViewingSquad(squad)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:border-scout-300 dark:hover:border-scout-500 hover:shadow-sm transition-all text-left">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
+                                <Users size={14} className="text-scout-500" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                                  หมู่ {squad.number} · {squad.name}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {squad._count?.scouts || 0} คน
+                                  {squad.leader && ` · ผู้กำกับ: ${squad.leader.name}`}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-semibold text-gray-800 dark:text-white">หมู่ {squad.number} · {squad.name}</p>
-                              <p className="text-xs text-gray-400">
-                                {squad._count?.scouts || 0} คน
-                                {squad.leader && ` · ผู้กำกับ: ${squad.leader.name}`}
-                                {squad.college && ` · ${squad.college}`}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                            <span className={`text-xs font-medium ${school ? "text-blue-500 dark:text-blue-400" : "text-gray-400"}`}>
+                              {school || "ไม่มีลูกเสือ"}
+                            </span>
+                          </button>
+                        )
+                      })}
                     </div>
 
-                    {/* add squad form */}
+                    {/* Add squad */}
                     {showAddSquad === troop.id ? (
-                      <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 p-4">
+                      <div className="rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 p-4">
                         <div className="space-y-3">
-                            <input 
-                            className={inputCls} 
-                            placeholder="ชื่อหมู่ (เช่น ลูกเสือสามัญ)" 
-                            value={squadForm.name} 
-                            onChange={e => setSquadForm(f => ({ ...f, name: e.target.value }))} 
+                          <input
+                            className={INPUT_CLS}
+                            placeholder="ชื่อหมู่ (เช่น ลูกเสือสามัญ)"
+                            value={squadForm.name}
+                            onChange={e => setSquadForm(f => ({ ...f, name: e.target.value }))}
                           />
-                          <input 
-                            className={inputCls} 
-                            type="number" 
-                            placeholder="หมายเลขหมู่ (เช่น 1, 2, 3)" 
-                            value={squadForm.number} 
-                            onChange={e => setSquadForm(f => ({ ...f, number: e.target.value }))} 
+                          <input
+                            className={INPUT_CLS}
+                            type="number"
+                            placeholder="หมายเลขหมู่ (เช่น 1, 2, 3)"
+                            value={squadForm.number}
+                            onChange={e => setSquadForm(f => ({ ...f, number: e.target.value }))}
                           />
                           <div className="flex gap-2">
-                            <button 
-                              onClick={() => addSquadMutation.mutate({ troopId: troop.id })} 
-                              className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-semibold shadow-md shadow-scout-600/20 transition"
+                            <button
+                              onClick={() => addSquadMutation.mutate({ troopId: troop.id })}
+                              className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-semibold transition"
                             >
                               บันทึก
                             </button>
-                            <button 
-                              onClick={() => setShowAddSquad(null)} 
-                              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                            <button
+                              onClick={() => setShowAddSquad(null)}
+                              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
                             >
                               ยกเลิก
                             </button>
@@ -257,10 +219,9 @@ export default function CampStructure() {
                         </div>
                       </div>
                     ) : (
-                      <button 
-                         onClick={() => setShowAddSquad(troop.id)} 
-
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-95"
+                      <button
+                        onClick={() => setShowAddSquad(troop.id)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition active:scale-95"
                       >
                         <Plus size={16} /> เพิ่มหมู่
                       </button>
@@ -272,7 +233,7 @@ export default function CampStructure() {
           )
         })}
 
-        {/* empty state */}
+        {/* Empty state */}
         {(!camp?.troops || camp.troops.length === 0) && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-20 h-20 rounded-2xl bg-scout-50 dark:bg-scout-900/30 flex items-center justify-center mb-4">
@@ -284,17 +245,89 @@ export default function CampStructure() {
         )}
       </div>
 
-      {/* ══ Stats Modal ═══════════════════════════════════════════════ */}
+      {/* Squad Detail Modal */}
+      {viewingSquad && (
+        <Modal onClose={() => setViewingSquad(null)}>
+          <ModalHeader
+            title={`หมู่ ${viewingSquad.number} · ${viewingSquad.name}`}
+            onClose={() => setViewingSquad(null)}
+          />
+          <div className="px-6 py-5">
+            {/* info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-scout-50 dark:bg-scout-900/30 mb-5">
+              <div className="w-10 h-10 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
+                <Users size={18} className="text-scout-500" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  {viewingSquad._count?.scouts || 0} คน
+                </p>
+                {viewingSquad.leaders?.[0] && (
+                  <p className="text-xs text-gray-400">ผู้กำกับ: {viewingSquad.leaders[0].name}</p>
+                )}
+              </div>
+            </div>
+
+            {/* scout list */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">รายชื่อลูกเสือ</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-scout-100 dark:bg-scout-900/40 text-scout-700 dark:text-scout-300">
+                {viewingSquad._count?.scouts || 0} คน
+              </span>
+            </div>
+
+            {loadingSquadScouts ? (
+              <div className="flex justify-center py-8">
+                <div className="w-8 h-8 border-2 border-scout-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : squadScouts.length === 0 ? (
+              <div className="text-center py-8 rounded-xl bg-gray-50 dark:bg-scout-800/40 border border-dashed border-gray-200 dark:border-scout-600">
+                <Users size={32} className="text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">ไม่มีลูกเสือในหมู่นี้</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {squadScouts.map(scout => (
+                  <div key={scout.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
+                    <div className="w-8 h-8 rounded-full bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center text-xs font-bold text-scout-600">
+                      {scout.firstName?.[0]}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {scout.firstName} {scout.lastName}
+                        {scout.nickname && <span className="text-gray-400 font-normal ml-1">({scout.nickname})</span>}
+                      </p>
+                      <p className={`text-xs ${scout.school ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'}`}>
+                        {scout.school || 'ไม่ระบุสถานศึกษา'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="px-6 pb-6">
+            <button
+              onClick={() => setViewingSquad(null)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-600 transition"
+            >
+              ปิด
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Stats Modal */}
       {showStatsModal && (
-        <Modal onClose={() => setShowStatsModal(null)}>
-          <ModalHeader 
+        <Modal onClose={() => { setShowStatsModal(null); setSearchQuery('') }}>
+          <ModalHeader
             title={
               showStatsModal === 'troops' ? 'รายละเอียดกอง' :
               showStatsModal === 'squads' ? 'รายละเอียดหมู่' : 'รายละเอียดลูกเสือ'
-            } 
-            onClose={() => setShowStatsModal(null)} 
+            }
+            onClose={() => { setShowStatsModal(null); setSearchQuery('') }}
           />
-          
+
           <div className="px-6 py-5">
             {showStatsModal === 'troops' && (
               <div className="space-y-4">
@@ -302,23 +335,19 @@ export default function CampStructure() {
                   <p className="text-3xl font-bold text-scout-600">{totalTroops}</p>
                   <p className="text-sm text-gray-500">กองทั้งหมดในค่าย</p>
                 </div>
-                
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {camp?.troops?.map((troop, idx) => {
                     const col = colorOf(idx)
-                    const troopSquads = troop.squads?.length || 0
-                    const troopScouts = troop.squads?.reduce((sum, squad) => sum + (squad._count?.scouts || 0), 0) || 0
-                    
+                    const troopScouts = troop.squads?.reduce((s, sq) => s + (sq._count?.scouts || 0), 0) || 0
                     return (
-                      <div key={troop.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                      <div key={troop.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
                         <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${col.bg} flex items-center justify-center`}>
                           <span className="text-white font-bold">{troop.number}</span>
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-gray-900 dark:text-white">{troop.name || `กอง ${troop.number}`}</p>
-
                           <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                            <span>{troopSquads} หมู่</span>
+                            <span>{troop.squads?.length || 0} หมู่</span>
                             <span>·</span>
                             <span>{troopScouts} คน</span>
                           </div>
@@ -337,15 +366,14 @@ export default function CampStructure() {
                   <p className="text-sm text-gray-500">หมู่ทั้งหมดในค่าย</p>
                   <p className="text-xs text-gray-400 mt-1">เฉลี่ย {totalTroops > 0 ? (totalSquads / totalTroops).toFixed(1) : 0} หมู่ต่อกอง</p>
                 </div>
-                
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {camp?.troops?.map(troop => 
+                  {camp?.troops?.map(troop =>
                     troop.squads?.map(squad => {
                       const troopIdx = camp.troops.findIndex(t => t.id === troop.id)
                       const col = colorOf(troopIdx)
-                      
+                      const school = squad.scouts?.[0]?.school || null
                       return (
-                        <div key={squad.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                        <div key={squad.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
                           <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${col.bg} flex items-center justify-center`}>
                             <Users size={16} className="text-white" />
                           </div>
@@ -355,7 +383,7 @@ export default function CampStructure() {
                             <div className="flex gap-3 mt-1 text-xs text-gray-400">
                               <span>{squad._count?.scouts || 0} คน</span>
                               {squad.leader && <span>· ผู้กำกับ: {squad.leader.name}</span>}
-                              {squad.college && <span>· {squad.college}</span>}
+<span className={school ? "text-blue-500" : "text-gray-400"}>· {school || "ไม่มีลูกเสือ"}</span>
                             </div>
                           </div>
                         </div>
@@ -371,108 +399,54 @@ export default function CampStructure() {
                 <div className="text-center py-4">
                   <p className="text-3xl font-bold text-scout-600">{scouts?.length || 0}</p>
                   <p className="text-sm text-gray-500">ลูกเสือทั้งหมดในค่าย</p>
-                  <p className="text-xs text-gray-400 mt-1">ลูกเสือที่ลงทะเบียนเข้าค่าย</p>
                 </div>
-                
-                {/* Search bar */}
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="ค้นหาชื่อ, นามสกุล, หมู่, กอง, หรือวิทยาลัย..."
+                    placeholder="ค้นหาชื่อ, สถานศึกษา..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 bg-gray-50 dark:bg-scout-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 transition text-sm"
                   />
                 </div>
-                
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {scouts?.map((scout) => {
-                    // Find squad info for this scout
-                    let squadInfo = null
-                    let troopInfo = null
+                  {scouts?.filter(scout =>
+                    !searchQuery ||
+                    `${scout.firstName} ${scout.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    scout.school?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    scout.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map(scout => {
                     let col = null
-                    
                     camp?.troops?.forEach((troop, troopIdx) => {
                       troop.squads?.forEach(squad => {
-                        // Assuming scout has squadId or we need to match by other criteria
-                        if (scout.squadId === squad.id || 
-                            (scout.squadNumber === squad.number && scout.troopNumber === troop.number)) {
-                          squadInfo = squad
-                          troopInfo = troop
-                          col = colorOf(troopIdx)
-                        }
+                        if (scout.squadId === squad.id) col = colorOf(troopIdx)
                       })
                     })
-                    
-                    // Filter based on search query
-                    const matchesSearch = !searchQuery || 
-                      (scout.firstName && scout.firstName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.lastName && scout.lastName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.fullName && scout.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.nickname && scout.nickname.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.squadNumber && scout.squadNumber.toString().includes(searchQuery)) ||
-                      (scout.troopNumber && scout.troopNumber.toString().includes(searchQuery)) ||
-                      (squadInfo?.name && squadInfo.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (troopInfo?.number && troopInfo.number.toString().includes(searchQuery)) ||
-                      (scout.college && scout.college.toLowerCase().includes(searchQuery.toLowerCase()))
-                    
-                    if (!matchesSearch) return null
-                    
                     return (
-                      <div key={scout.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${col?.bg || 'from-gray-500 to-gray-600'} flex items-center justify-center`}>
+                      <div key={scout.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${col?.bg || 'from-gray-400 to-gray-500'} flex items-center justify-center`}>
                           <Star size={16} className="text-white" />
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {scout.fullName || `${scout.firstName || ''} ${scout.lastName || ''}`}
+                            {scout.firstName} {scout.lastName}
                             {scout.nickname && <span className="text-sm text-gray-400 ml-2">({scout.nickname})</span>}
                           </p>
-                          <p className="text-sm text-gray-500">
-                            หมู่ {scout.squadNumber || squadInfo?.number || '-'} · กอง {scout.troopNumber || troopInfo?.number || '-'}
-                            {squadInfo && <span className="ml-1">· {squadInfo.name}</span>}
-                          </p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                            {scout.age && <span>อายุ {scout.age} ปี</span>}
-                            {scout.college && <span>· {scout.college}</span>}
-                            {scout.phoneNumber && <span>· {scout.phoneNumber}</span>}
-                          </div>
+                          {scout.school && <p className="text-xs text-blue-500 dark:text-blue-400">{scout.school}</p>}
                         </div>
                       </div>
                     )
                   })}
-                  
-                  {/* Show no results message */}
-                  {scouts && scouts.length > 0 && scouts.every(scout => {
-                    const matchesSearch = !searchQuery || 
-                      (scout.firstName && scout.firstName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.lastName && scout.lastName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.fullName && scout.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.nickname && scout.nickname.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (scout.squadNumber && scout.squadNumber.toString().includes(searchQuery)) ||
-                      (scout.troopNumber && scout.troopNumber.toString().includes(searchQuery)) ||
-                      (scout.college && scout.college.toLowerCase().includes(searchQuery.toLowerCase()))
-                    return !matchesSearch
-                  }) && (
-                    <div className="text-center py-8 text-gray-400">
-                      <Search size={32} className="mx-auto mb-2 opacity-50" />
-                      <p>ไม่พบข้อมูลที่ค้นหา</p>
-                      <p className="text-xs mt-1">ลองค้นหาด้วยคำอื่น</p>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
           </div>
 
           <div className="px-6 pb-6">
-            <button 
-              onClick={() => {
-                setShowStatsModal(null)
-                setSearchQuery('') // Clear search when closing
-              }} 
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            <button
+              onClick={() => { setShowStatsModal(null); setSearchQuery('') }}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
             >
               ปิด
             </button>
