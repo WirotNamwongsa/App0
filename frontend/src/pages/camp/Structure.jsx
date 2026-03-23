@@ -178,7 +178,7 @@ export default function CampStructure() {
                               </div>
                             </div>
                             <span className={`text-xs font-medium ${school ? "text-blue-500 dark:text-blue-400" : "text-gray-400"}`}>
-                              {school || "ไม่มีลูกเสือ"}
+                              {school || "ไม่มีนักเรียน"}
                             </span>
                           </button>
                         )
@@ -219,12 +219,18 @@ export default function CampStructure() {
                         </div>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setShowAddSquad(troop.id)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition active:scale-95"
-                      >
-                        <Plus size={16} /> เพิ่มหมู่
-                      </button>
+                      troop.squads?.length >= 5 ? (
+                        <div className="text-center py-3 rounded-xl bg-gray-50 dark:bg-scout-800/40 border border-dashed border-gray-200 dark:border-scout-600">
+                          <p className="text-xs text-gray-400">สร้างได้สูงสุด 5 หมู่ต่อกอง</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowAddSquad(troop.id)}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition active:scale-95"
+                        >
+                          <Plus size={16} /> เพิ่มหมู่ ({troop.squads?.length || 0}/5)
+                        </button>
+                      )
                     )}
                   </div>
                 )}
@@ -383,7 +389,7 @@ export default function CampStructure() {
                             <div className="flex gap-3 mt-1 text-xs text-gray-400">
                               <span>{squad._count?.scouts || 0} คน</span>
                               {squad.leader && <span>· ผู้กำกับ: {squad.leader.name}</span>}
-<span className={school ? "text-blue-500" : "text-gray-400"}>· {school || "ไม่มีลูกเสือ"}</span>
+<span className={school ? "text-blue-500" : "text-gray-400"}>· {school || "ไม่มีนักเรียน"}</span>
                             </div>
                           </div>
                         </div>
