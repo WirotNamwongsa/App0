@@ -18,6 +18,28 @@ router.get('/', async (req, res) => {
   res.json(activities)
 })
 
+// ✅ GET /api/activities/by-camp/:campId
+// ดึงเฉพาะกิจกรรมที่มี Schedule อยู่ใน camp นั้น (ไม่นับ activity ที่ยังไม่ถูก schedule)
+router.get('/by-camp/:campId', async (req, res) => {
+  const { campId } = req.params
+
+  // หา activityId ที่มี Schedule ใน camp นี้ (distinct)
+  const schedules = await prisma.schedule.findMany({
+    where: { campId },
+    select: { activityId: true },
+    distinct: ['activityId']
+  })
+
+  const activityIds = schedules.map(s => s.activityId)
+
+  const activities = await prisma.activity.findMany({
+    where: { id: { in: activityIds } },
+    select: { id: true, name: true, type: true }
+  })
+
+  res.json(activities)
+})
+
 // GET /api/activities/:id
 router.get('/:id', async (req, res) => {
   const activity = await prisma.activity.findUnique({
@@ -36,8 +58,6 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
   const { name, type, description, staffId } = req.body
   const staffIdOrNull = staffId || null
 
-  // staffId ถูกกำหนดเป็น unique ใน schema -> 1 staff ดูแลได้ 1 activity เท่านั้น
-  // ถ้าเลือก staff ที่ถูก assign อยู่แล้ว ให้ย้ายมา activity ใหม่โดย auto-unassign ตัวเดิม
   if (staffIdOrNull) {
     await prisma.activity.updateMany({
       where: { staffId: staffIdOrNull },
@@ -72,29 +92,16 @@ router.patch('/:id', requireRole('ADMIN'), async (req, res) => {
 // DELETE /api/activities/:id
 router.delete('/:id', requireRole('ADMIN'), async (req, res) => {
   const activityId = req.params.id
-  
-  // ตรวจสอบว่ามีข้อมูลที่เกี่ยวข้องหรือไม่
+
   const schedules = await prisma.schedule.count({ where: { activityId } })
   const attendances = await prisma.attendance.count({ where: { activityId } })
-  
-  // ลบข้อมูลที่เกี่ยวข้องก่อน
-  if (schedules > 0) {
-    await prisma.schedule.deleteMany({ where: { activityId } })
-  }
-  if (attendances > 0) {
-    await prisma.attendance.deleteMany({ where: { activityId } })
-  }
-  
-  // ลบ Activity
+
+  if (schedules > 0) await prisma.schedule.deleteMany({ where: { activityId } })
+  if (attendances > 0) await prisma.attendance.deleteMany({ where: { activityId } })
+
   await prisma.activity.delete({ where: { id: activityId } })
-  
-  res.json({ 
-    message: 'ลบกิจกรรมสำเร็จ',
-    deleted: {
-      schedules,
-      attendances
-    }
-  })
+
+  res.json({ message: 'ลบกิจกรรมสำเร็จ', deleted: { schedules, attendances } })
 })
 
 export default router

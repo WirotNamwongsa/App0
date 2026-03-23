@@ -6,10 +6,6 @@ import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
 import { Trash2, Plus, Calendar, Clock, Users, X, Pencil } from 'lucide-react'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants & sub-components OUTSIDE main component (prevents focus loss)
-// ─────────────────────────────────────────────────────────────────────────────
-
 const SLOTS = [
   { value: 'MORNING', label: 'เช้า' },
   { value: 'AFTERNOON', label: 'บ่าย' },
@@ -45,16 +41,12 @@ function ModalHeader({ title, onClose }) {
 
 const EMPTY_FORM = { activityId: '', date: '', slot: 'MORNING', squadIds: [], activityGroupId: '' }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function CampSchedule() {
   const { user } = useAuthStore()
   const qc = useQueryClient()
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null) // null = create mode, id = edit mode
+  const [editingId, setEditingId] = useState(null)
   const [viewingSchedule, setViewingSchedule] = useState(null)
 
   const { data: activities = [] } = useQuery('activities', () => api.get('/activities'))
@@ -106,7 +98,6 @@ export default function CampSchedule() {
   const openEdit = (s) => {
     const groupId = s.activityGroupId || activityGroups.find(g => g.squads?.some(sq => sq.id === s.squad?.id))?.id || ''
     const group = activityGroups.find(g => g.id === groupId)
-    // auto-select ทุกหมู่ในกลุ่ม
     const allSquadIds = group?.squads?.map(sq => sq.id) || s.squadIds || (s.squad ? [s.squad.id] : [])
     setForm({
       activityId: s.activityId || '',
@@ -127,7 +118,6 @@ export default function CampSchedule() {
     }
   }
 
-  // เมื่อเลือกกลุ่มกิจกรรม → auto-select หมู่ทั้งหมดในกลุ่ม
   const handleSelectGroup = (groupId) => {
     const group = activityGroups.find(g => g.id === groupId)
     const allSquadIds = group?.squads?.map(sq => sq.id) || []
@@ -146,7 +136,6 @@ export default function CampSchedule() {
     }))
   }
 
-  // group schedules by date
   const grouped = {}
   schedules.forEach(s => {
     const d = new Date(s.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
@@ -178,8 +167,8 @@ export default function CampSchedule() {
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-3 mb-7">
         {[
-          { label: 'กลุ่มกิจกรรม',    value: activityGroups.length,      icon: <Users    size={16} /> },
-          { label: 'กำหนดการทั้งหมด', value: schedules.length,           icon: <Calendar size={16} /> },
+          { label: 'กลุ่มกิจกรรม',    value: activityGroups.length,       icon: <Users    size={16} /> },
+          { label: 'กำหนดการทั้งหมด', value: schedules.length,            icon: <Calendar size={16} /> },
           { label: 'วันที่มีกิจกรรม', value: Object.keys(grouped).length, icon: <Clock    size={16} /> },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-gray-100 dark:border-scout-600 bg-white dark:bg-scout-800 px-4 py-3 flex items-center gap-3 shadow-sm">
@@ -206,14 +195,17 @@ export default function CampSchedule() {
               {items.map((s) => {
                 const slotLabel = SLOTS.find(sl => sl.value === s.slot)?.label
                 const activity = activities.find(a => a.id === s.activityId)
-                // หากลุ่มกิจกรรมที่ schedule นี้สังกัด
                 const group = activityGroups.find(g =>
                   g.id === s.activityGroupId ||
                   g.squads?.some(sq => sq.id === s.squad?.id)
                 )
 
                 return (
-                  <div key={s.id} className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:shadow-md hover:border-scout-300 dark:hover:border-scout-500 transition-all cursor-pointer" onClick={() => setViewingSchedule(s)}>
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:shadow-md hover:border-scout-300 dark:hover:border-scout-500 transition-all cursor-pointer"
+                    onClick={() => setViewingSchedule(s)}
+                  >
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-scout-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
                       <Clock size={20} className="text-white" />
                     </div>
@@ -226,7 +218,6 @@ export default function CampSchedule() {
                           {slotLabel}
                         </span>
                       </div>
-                      {/* แสดงแค่ชื่อกลุ่มกิจกรรม */}
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
                         {group && (
                           <span className="font-medium text-scout-600 dark:text-scout-400">
@@ -238,16 +229,17 @@ export default function CampSchedule() {
                         )}
                       </div>
                     </div>
-                    {/* ปุ่มแก้ไข + ลบ */}
+
+                    {/* ✅ เพิ่ม stopPropagation ทั้ง 2 ปุ่ม */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        onClick={() => openEdit(s)}
+                        onClick={(e) => { e.stopPropagation(); openEdit(s) }}
                         className="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-scout-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-scout-600 transition active:scale-95"
                       >
                         <Pencil size={13} /> แก้ไข
                       </button>
                       <button
-                        onClick={() => deleteMutation.mutate(s.id)}
+                        onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(s.id) }}
                         className="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl border border-red-100 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition active:scale-95"
                       >
                         <Trash2 size={13} /> ลบ
@@ -278,14 +270,13 @@ export default function CampSchedule() {
         </div>
       )}
 
-      {/* ══ Add / Edit Schedule Modal ════════════════════════════════════════ */}
+      {/* ══ Add / Edit Modal ══════════════════════════════════════════════════ */}
       {showForm && (
         <Modal onClose={closeForm}>
           <ModalHeader
             title={editingId ? 'แก้ไขกำหนดการกิจกรรม' : 'เพิ่มกำหนดการกิจกรรม'}
             onClose={closeForm}
           />
-
           <div className="px-6 py-5 space-y-5">
 
             {/* กลุ่มกิจกรรม */}
@@ -293,16 +284,10 @@ export default function CampSchedule() {
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                 กลุ่มกิจกรรม *
               </label>
-              <select
-                className={INPUT_CLS}
-                value={form.activityGroupId}
-                onChange={e => handleSelectGroup(e.target.value)}
-              >
+              <select className={INPUT_CLS} value={form.activityGroupId} onChange={e => handleSelectGroup(e.target.value)}>
                 <option value="">เลือกกลุ่มกิจกรรม</option>
                 {activityGroups.map(g => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} ({g.squads?.length || 0} หมู่)
-                  </option>
+                  <option key={g.id} value={g.id}>{g.name} ({g.squads?.length || 0} หมู่)</option>
                 ))}
               </select>
             </div>
@@ -358,14 +343,13 @@ export default function CampSchedule() {
               </div>
             </div>
 
-            {/* หมู่ในกลุ่ม — auto-selected, ยังปรับได้ */}
+            {/* หมู่ในกลุ่ม */}
             {form.activityGroupId && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     หมู่ในกลุ่ม ({form.squadIds.length}/{availableSquads.length} หมู่)
                   </label>
-                  {/* ปุ่ม เลือกทั้งหมด / ยกเลิกทั้งหมด */}
                   <button
                     onClick={() => {
                       const allIds = availableSquads.map(sq => sq.id)
@@ -427,7 +411,7 @@ export default function CampSchedule() {
         </Modal>
       )}
 
-      {/* ══ Detail Modal ═════════════════════════════════════════════════════ */}
+      {/* ══ Detail Modal ══════════════════════════════════════════════════════ */}
       {viewingSchedule && (() => {
         const s = viewingSchedule
         const activity = activities.find(a => a.id === s.activityId)
@@ -437,7 +421,6 @@ export default function CampSchedule() {
           g.squads?.some(sq => sq.id === s.squad?.id)
         )
         const allGroupSquads = group?.squads || []
-        // squadIds อาจว่างเพราะ API ไม่ส่งมา → fallback ใช้ทุกหมู่ในกลุ่ม
         const rawIds = (s.squadIds?.length > 0)
           ? s.squadIds
           : s.squad
@@ -449,14 +432,9 @@ export default function CampSchedule() {
 
         return (
           <Modal onClose={() => setViewingSchedule(null)}>
-            <ModalHeader
-              title="รายละเอียดกำหนดการ"
-              onClose={() => setViewingSchedule(null)}
-            />
-
+            <ModalHeader title="รายละเอียดกำหนดการ" onClose={() => setViewingSchedule(null)} />
             <div className="px-6 py-5 space-y-5">
 
-              {/* ข้อมูลหลัก */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-scout-50 to-emerald-50 dark:from-scout-900/30 dark:to-emerald-900/20 border border-scout-100 dark:border-scout-600">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-scout-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
                   <Clock size={24} className="text-white" />
@@ -464,28 +442,21 @@ export default function CampSchedule() {
                 <div>
                   <h4 className="text-lg font-bold text-gray-900 dark:text-white">{activity?.name || 'ไม่ระบุ'}</h4>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-scout-100 dark:bg-scout-900/40 text-scout-700 dark:text-scout-300">
-                      {slotLabel}
-                    </span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-scout-100 dark:bg-scout-900/40 text-scout-700 dark:text-scout-300">{slotLabel}</span>
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-scout-800 text-gray-600 dark:text-gray-300">
                       {new Date(s.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
                     {group && (
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                        {group.name}
-                      </span>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{group.name}</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* หมู่ที่เข้าร่วม */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-bold uppercase tracking-widest text-gray-400">หมู่ที่เข้าร่วม</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                    {joinedSquads.length} หมู่
-                  </span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{joinedSquads.length} หมู่</span>
                 </div>
                 {joinedSquads.length > 0 ? (
                   <div className="space-y-2">
@@ -498,10 +469,7 @@ export default function CampSchedule() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
                             {sq.name || `กอง ${sq.troop?.number} หมู่ ${sq.number}`}
                           </p>
-                          <p className="text-xs text-gray-400">
-                            {sq._count?.scouts || 0} คน
-                            {sq.leader && ` · ผู้กำกับ: ${sq.leader.name}`}
-                          </p>
+                          <p className="text-xs text-gray-400">{sq._count?.scouts || 0} คน{sq.leader && ` · ผู้กำกับ: ${sq.leader.name}`}</p>
                         </div>
                       </div>
                     ))}
@@ -511,14 +479,11 @@ export default function CampSchedule() {
                 )}
               </div>
 
-              {/* หมู่ที่ยังไม่มีกิจกรรม */}
               {missingSquads.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">หมู่ที่ยังไม่มีกิจกรรมนี้</span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
-                      {missingSquads.length} หมู่
-                    </span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">{missingSquads.length} หมู่</span>
                   </div>
                   <div className="space-y-2">
                     {missingSquads.map(sq => (
@@ -530,10 +495,7 @@ export default function CampSchedule() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
                             {sq.name || `กอง ${sq.troop?.number} หมู่ ${sq.number}`}
                           </p>
-                          <p className="text-xs text-gray-400">
-                            {sq._count?.scouts || 0} คน
-                            {sq.leader && ` · ผู้กำกับ: ${sq.leader.name}`}
-                          </p>
+                          <p className="text-xs text-gray-400">{sq._count?.scouts || 0} คน{sq.leader && ` · ผู้กำกับ: ${sq.leader.name}`}</p>
                         </div>
                       </div>
                     ))}
