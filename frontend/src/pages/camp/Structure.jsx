@@ -49,9 +49,15 @@ export default function CampStructure() {
   const [squadForm, setSquadForm] = useState({ name: '', number: '' })
   const [showStatsModal, setShowStatsModal] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewingSquad, setViewingSquad] = useState(null)
 
   const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
   const { data: scouts } = useQuery('camp-scouts', () => api.get('/scouts?campId=' + (user?.campId || '')))
+  const { data: squadScouts = [], isLoading: loadingSquadScouts } = useQuery(
+    ['squad-scouts', viewingSquad?.id],
+    () => api.get(`/scouts?squadId=${viewingSquad.id}`),
+    { enabled: !!viewingSquad }
+  )
 
   const addSquadMutation = useMutation(
     ({ troopId }) => api.post(`/camps/${user.campId}/troops/${troopId}/squads`, squadForm),
@@ -156,7 +162,7 @@ export default function CampStructure() {
                         const school = squad.scouts?.[0]?.school || null
 
                         return (
-                          <div key={squad.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
+                          <button key={squad.id} onClick={() => setViewingSquad(squad)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:border-scout-300 dark:hover:border-scout-500 hover:shadow-sm transition-all text-left">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
                                 <Users size={14} className="text-scout-500" />
@@ -168,13 +174,13 @@ export default function CampStructure() {
                                 <p className="text-xs text-gray-400">
                                   {squad._count?.scouts || 0} คน
                                   {squad.leader && ` · ผู้กำกับ: ${squad.leader.name}`}
-                                  {school && (
-                                    <span className="ml-1 text-blue-500 dark:text-blue-400">· {school}</span>
-                                  )}
                                 </p>
                               </div>
                             </div>
-                          </div>
+                            <span className={`text-xs font-medium ${school ? "text-blue-500 dark:text-blue-400" : "text-gray-400"}`}>
+                              {school || "ไม่มีลูกเสือ"}
+                            </span>
+                          </button>
                         )
                       })}
                     </div>
@@ -238,6 +244,78 @@ export default function CampStructure() {
           </div>
         )}
       </div>
+
+      {/* Squad Detail Modal */}
+      {viewingSquad && (
+        <Modal onClose={() => setViewingSquad(null)}>
+          <ModalHeader
+            title={`หมู่ ${viewingSquad.number} · ${viewingSquad.name}`}
+            onClose={() => setViewingSquad(null)}
+          />
+          <div className="px-6 py-5">
+            {/* info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-scout-50 dark:bg-scout-900/30 mb-5">
+              <div className="w-10 h-10 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
+                <Users size={18} className="text-scout-500" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  {viewingSquad._count?.scouts || 0} คน
+                </p>
+                {viewingSquad.leaders?.[0] && (
+                  <p className="text-xs text-gray-400">ผู้กำกับ: {viewingSquad.leaders[0].name}</p>
+                )}
+              </div>
+            </div>
+
+            {/* scout list */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">รายชื่อลูกเสือ</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-scout-100 dark:bg-scout-900/40 text-scout-700 dark:text-scout-300">
+                {viewingSquad._count?.scouts || 0} คน
+              </span>
+            </div>
+
+            {loadingSquadScouts ? (
+              <div className="flex justify-center py-8">
+                <div className="w-8 h-8 border-2 border-scout-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : squadScouts.length === 0 ? (
+              <div className="text-center py-8 rounded-xl bg-gray-50 dark:bg-scout-800/40 border border-dashed border-gray-200 dark:border-scout-600">
+                <Users size={32} className="text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">ไม่มีลูกเสือในหมู่นี้</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {squadScouts.map(scout => (
+                  <div key={scout.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
+                    <div className="w-8 h-8 rounded-full bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center text-xs font-bold text-scout-600">
+                      {scout.firstName?.[0]}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {scout.firstName} {scout.lastName}
+                        {scout.nickname && <span className="text-gray-400 font-normal ml-1">({scout.nickname})</span>}
+                      </p>
+                      <p className={`text-xs ${scout.school ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'}`}>
+                        {scout.school || 'ไม่ระบุสถานศึกษา'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="px-6 pb-6">
+            <button
+              onClick={() => setViewingSquad(null)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-600 transition"
+            >
+              ปิด
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Stats Modal */}
       {showStatsModal && (
@@ -305,7 +383,7 @@ export default function CampStructure() {
                             <div className="flex gap-3 mt-1 text-xs text-gray-400">
                               <span>{squad._count?.scouts || 0} คน</span>
                               {squad.leader && <span>· ผู้กำกับ: {squad.leader.name}</span>}
-                              {school && <span className="text-blue-500">· {school}</span>}
+<span className={school ? "text-blue-500" : "text-gray-400"}>· {school || "ไม่มีลูกเสือ"}</span>
                             </div>
                           </div>
                         </div>
