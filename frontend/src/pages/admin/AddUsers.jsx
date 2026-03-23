@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from 'react-query'
 import { 
   Users, UserPlus, Shield, Search, Filter, X, Check, AlertCircle, 
@@ -22,7 +22,7 @@ export default function AdminAddUsers() {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    confirmPassword: '',
+    confirmPassword: '', 
     name: '',
     role: 'SCOUT',
     firstName: '',
@@ -62,18 +62,6 @@ export default function AdminAddUsers() {
 
   // Fetch camps for dropdown
   const { data: camps = [] } = useQuery('camps', () => api.get('/camps'))
-  
-  // Fetch squads when camp is selected
-  const { data: squads = [] } = useQuery(
-    ['squads', formData.campId],
-    () => formData.campId ? api.get(`/camps/${formData.campId}/squads`) : Promise.resolve([]),
-    {
-      enabled: !!formData.campId,
-      onError: () => {
-        toast.error('ไม่สามารถโหลดข้อมูลหมู่ได้')
-      }
-    }
-  )
 
   const filteredScouts = availableScouts.filter(scout => 
     scout.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,7 +72,8 @@ export default function AdminAddUsers() {
 
   const filteredLeaders = availableLeaders.filter(leader => 
     leader.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    leader.username?.toLowerCase().includes(searchTerm.toLowerCase())
+    leader.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    leader.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleCreateUser = async () => {
@@ -98,25 +87,6 @@ export default function AdminAddUsers() {
       if (formData.password !== formData.confirmPassword) {
         toast.error('รหัสผ่านไม่ตรงกัน')
         return
-      }
-
-      // Validate role-specific fields
-      if (formData.role === 'SCOUT') {
-        if (!formData.campId) {
-          toast.error('กรุณาเลือกค่ายสำหรับลูกเสือ')
-          return
-        }
-      }
-      
-      if (formData.role === 'TROOP_LEADER') {
-        if (!formData.campId) {
-          toast.error('กรุณาเลือกค่ายสำหรับผู้กำกับ')
-          return
-        }
-        if (!formData.squadId) {
-          toast.error('กรุณาเลือกหมู่สำหรับผู้กำกับ')
-          return
-        }
       }
 
       const userData = {
@@ -136,9 +106,6 @@ export default function AdminAddUsers() {
         userData.province = formData.province
         userData.phone = formData.phone
         userData.email = formData.email
-      }
-      
-      if (formData.role === 'TROOP_LEADER') {
         userData.squadId = formData.squadId || null
       }
 
@@ -652,9 +619,7 @@ export default function AdminAddUsers() {
                     </label>
                     <select
                       value={formData.campId}
-                      onChange={(e) => {
-                        setFormData({...formData, campId: e.target.value, squadId: ''})
-                      }}
+                      onChange={(e) => setFormData({...formData, campId: e.target.value})}
                       className="w-full px-4 py-3 border-2 border-gray-200 dark:border-scout-700 rounded-xl bg-gray-50 dark:bg-scout-800 text-scout-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     >
                       <option value="">เลือกค่าย</option>
@@ -662,31 +627,6 @@ export default function AdminAddUsers() {
                         <option key={camp.id} value={camp.id}>{camp.name}</option>
                       ))}
                     </select>
-                  </div>
-
-                  {formData.campId && formData.role === 'TROOP_LEADER' && (
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                        หมู่
-                      </label>
-                      <select
-                        value={formData.squadId}
-                        onChange={(e) => setFormData({...formData, squadId: e.target.value})}
-                        className="w-full px-4 py-3 border-2 border-gray-200 dark:border-scout-700 rounded-xl bg-gray-50 dark:bg-scout-800 text-scout-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      >
-                        <option value="">เลือกหมู่</option>
-                        {squads.map(squad => (
-                          <option key={squad.id} value={squad.id}>
-                            {squad.troop.name} - {squad.name} {squad.leader ? `(${squad.leader.name})` : '(ยังไม่มีผู้กำกับ)'}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  
-                  {/* Debug info - สามารถลบออกได้ */}
-                  <div className="text-xs text-gray-500 mt-2">
-                    Debug: role={formData.role}, campId={formData.campId}, squads.length={squads.length}
                   </div>
                 </div>
 

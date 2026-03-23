@@ -80,6 +80,15 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
 router.post('/:campId/troops', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { name, number } = req.body
 
+  // ตรวจสอบจำนวนกองในค่าย - จำกัดไว้ที่ 5 กอง
+  const existingTroopsCount = await prisma.troop.count({
+    where: { campId: req.params.campId }
+  })
+  
+  if (existingTroopsCount >= 5) {
+    throw createError(400, 'ไม่สามารถเพิ่มกองได้ เนื่องจากค่ายนี้มีกองครบ 5 กองแล้ว')
+  }
+
   const troop = await prisma.troop.create({
     data: { name, number: parseInt(number), campId: req.params.campId }
   })
