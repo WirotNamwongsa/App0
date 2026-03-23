@@ -162,19 +162,14 @@ export default function AdminCamps() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-scout-900 dark:text-white">{camp.name}</p>
-                    <p className="text-xs text-gray-400">{(camp.troops || []).length} กอง/{5} กอง · {totalScouts} คน</p>
+                    <p className="text-xs text-gray-400">{(camp.troops || []).length} กอง · {totalScouts} คน</p>
                   </div>
                   <ChevronRight size={16} className="text-gray-400 transition-transform duration-200"
                     style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                 </button>
                 <button onClick={() => setModal({ type: 'troop', campId: camp.id, formData: { name: '', number: '' } })}
-                  disabled={(camp.troops || []).length >= 5}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                    (camp.troops || []).length >= 5
-                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                      : 'bg-scout-100 dark:bg-scout-700 text-scout-600 dark:text-scout-300 hover:bg-scout-200 dark:hover:bg-scout-600'
-                  }`}
-                  title={(camp.troops || []).length >= 5 ? 'มีกองครบ 5 กองแล้ว' : 'เพิ่มกอง'}>
+                  className="w-8 h-8 rounded-lg flex items-center justify-center bg-scout-100 dark:bg-scout-700 text-scout-600 dark:text-scout-300 hover:bg-scout-200 dark:hover:bg-scout-600 transition-all"
+                  title='เพิ่มกอง'>
                   <Plus size={15} />
                 </button>
                 <button onClick={() => openDetailsModal('camp', camp)}
@@ -191,7 +186,7 @@ export default function AdminCamps() {
               {isOpen && (
                 <div className="border-t border-gray-100 dark:border-scout-800">
                   {(camp.troops || []).length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-4">ยังไม่มีกอง — กด + เพื่อเพิ่ม (สูงสุด 5 กอง)</p>
+                    <p className="text-xs text-gray-400 text-center py-4">ยังไม่มีกอง — กด + เพื่อเพิ่มกอง</p>
                   ) : (camp.troops || []).map(troop => {
                     const troopOpen = expandedTroop === troop.id
                     return (
@@ -203,13 +198,19 @@ export default function AdminCamps() {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-scout-900 dark:text-white">{troop.name}</p>
-                              <p className="text-xs text-gray-400">{(troop.squads || []).length} หมู่</p>
+                              <p className="text-xs text-gray-400">{(troop.squads || []).length}/5 หมู่</p>
                             </div>
                             <ChevronRight size={13} className="text-gray-400 ml-auto transition-transform duration-200"
                               style={{ transform: troopOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                           </button>
                           <button onClick={() => setModal({ type: 'squad', campId: camp.id, troopId: troop.id, formData: { name: '', number: '' } })}
-                            className="w-7 h-7 rounded-lg bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-scout-600 dark:text-scout-300 hover:bg-scout-200 dark:hover:bg-scout-600 transition-all">
+                            disabled={(troop.squads || []).length >= 5}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                              (troop.squads || []).length >= 5
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                                : 'bg-scout-100 dark:bg-scout-700 text-scout-600 dark:text-scout-300 hover:bg-scout-200 dark:hover:bg-scout-600'
+                            }`}
+                            title={(troop.squads || []).length >= 5 ? 'มีหมู่ครบ 5 หมู่แล้ว' : 'เพิ่มหมู่'}>
                             <Plus size={13} />
                           </button>
                           <button onClick={() => openDetailsModal('troop', troop)}
