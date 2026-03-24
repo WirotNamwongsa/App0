@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Users, Shield, X, Plus, UserPlus, ChevronRight } from 'lucide-react'
+import { Users, Shield, X, ChevronRight } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
-
-// ─── Sub-components outside main to prevent focus loss ───────────────────────
 
 function Modal({ children, onClose }) {
   return (
@@ -32,9 +30,14 @@ function Field({ label, error, children }) {
 
 const PROVINCES = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"]
 
-const EMPTY = { username:'', password:'', confirmPassword:'', firstName:'', lastName:'', nickname:'', birthDate:'', school:'', province:'', phone:'', email:'', role:'SCOUT', prefix:'', allergies:'', congenitalDisease:'', campId:'', squadId:'' }
-
-// ─── Main component ───────────────────────────────────────────────────────────
+const EMPTY = {
+  username: '', password: '', confirmPassword: '',
+  firstName: '', lastName: '', nickname: '', birthDate: '',
+  school: '', province: '', phone: '', email: '',
+  role: 'SCOUT', prefix: '', allergies: '', congenitalDisease: '',
+  campId: '', squadId: '',
+  citizenId: ''
+}
 
 export default function AdminAddUsers() {
   const [showModal, setShowModal] = useState(false)
@@ -62,18 +65,25 @@ export default function AdminAddUsers() {
 
   function validate() {
     const e = {}
-    if (!form.username.trim()) e.username = 'กรุณากรอก Username'
-    if (!form.password.trim()) e.password = 'กรุณากรอกรหัสผ่าน'
-    if (form.password !== form.confirmPassword) e.confirmPassword = 'รหัสผ่านไม่ตรงกัน'
+    if (!form.username.trim()) e.username = 'กรุณากรอกชื่อผู้ใช้'
     if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
     if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
     if (!form.prefix) e.prefix = 'กรุณาเลือกคำนำหน้า'
+<<<<<<< Updated upstream
     if (form.role === 'SCOUT') {
       if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
+=======
+    if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
+
+    if (form.role === 'SCOUT') {
+      if (!form.citizenId.trim()) e.citizenId = 'กรุณากรอกเลขบัตรประชาชน'
+      else if (!/^\d{13}$/.test(form.citizenId.trim())) e.citizenId = 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก'
+>>>>>>> Stashed changes
       if (!form.nickname.trim()) e.nickname = 'กรุณากรอกชื่อเล่น'
       if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
       if (!form.province) e.province = 'กรุณาเลือกจังหวัด'
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
+<<<<<<< Updated upstream
       if (!form.squadId) e.squadId = 'กรุณาเลือกหมู่'
     } else if (form.role === 'CAMP_MANAGER') {
       if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
@@ -81,6 +91,11 @@ export default function AdminAddUsers() {
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
     } else if (form.role === 'TROOP_LEADER') {
       if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
+=======
+    } else {
+      if (!form.password.trim()) e.password = 'กรุณากรอกรหัสผ่าน'
+      if (form.password !== form.confirmPassword) e.confirmPassword = 'รหัสผ่านไม่ตรงกัน'
+>>>>>>> Stashed changes
       if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
       if (!form.squadId) e.squadId = 'กรุณาเลือกหมู่'
@@ -99,19 +114,47 @@ export default function AdminAddUsers() {
     if (Object.keys(e).length > 0) { setErrors(e); return }
     setErrors({})
     const fullName = `${form.firstName} ${form.lastName}`.trim()
+<<<<<<< Updated upstream
     const userData = { username: form.username, password: form.password, name: fullName, role: form.role, campId: form.campId || null, firstName: form.firstName, lastName: form.lastName, school: form.school, phone: form.phone, prefix: form.prefix }
     if (form.role === 'SCOUT') {
       Object.assign(userData, { nickname: form.nickname, birthDate: form.birthDate, province: form.province, email: form.email, allergies: form.allergies, congenitalDisease: form.congenitalDisease, squadId: form.squadId })
+=======
+    const isScout = form.role === 'SCOUT'
+
+    const userData = {
+      username: form.username,
+      password: isScout ? form.citizenId : form.password,
+      citizenId: isScout ? form.citizenId : undefined,
+      name: fullName,
+      role: form.role,
+      campId: form.campId || null,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      school: form.school,
+      phone: form.phone,
+      prefix: form.prefix
+    }
+
+    if (isScout) {
+      Object.assign(userData, {
+        nickname: form.nickname,
+        birthDate: form.birthDate,
+        province: form.province,
+        email: form.email,
+        allergies: form.allergies,
+        congenitalDisease: form.congenitalDisease
+      })
+>>>>>>> Stashed changes
     } else {
       userData.squadId = form.squadId
       userData.province = form.province
       userData.email = form.email
     }
+
     createMutation.mutate(userData)
   }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
   const isLeader = form.role === 'TROOP_LEADER'
   const isAdmin = form.role === 'ADMIN'
   const isCampManager = form.role === 'CAMP_MANAGER'
@@ -122,6 +165,7 @@ export default function AdminAddUsers() {
     <div className="page">
       <PageHeader title="เพิ่มผู้ใช้" />
 
+<<<<<<< Updated upstream
       {/* Hero area */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         {/* Card Admin */}
@@ -165,8 +209,9 @@ export default function AdminAddUsers() {
         </button>
       </div>
 
+=======
+>>>>>>> Stashed changes
       <div className="grid grid-cols-2 gap-4 mb-8">
-        {/* Card ผู้กำกับ */}
         <button
           onClick={() => { set('role', 'TROOP_LEADER'); setShowModal(true) }}
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
@@ -180,12 +225,12 @@ export default function AdminAddUsers() {
             <p className="text-white font-bold text-base leading-tight">ผู้กำกับหมู่</p>
             <p className="text-green-300 text-xs mt-1">เพิ่มผู้กำกับหมู่ลูกเสือ</p>
             <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
-              <span>เพิ่มเลย</span>
-              <ChevronRight size={12} />
+              <span>เพิ่มเลย</span><ChevronRight size={12} />
             </div>
           </div>
         </button>
 
+<<<<<<< Updated upstream
         {/* Card ผู้จัดกิจกรรม */}
         <button
           onClick={() => { set('role', 'STAFF'); setShowModal(true) }}
@@ -209,6 +254,8 @@ export default function AdminAddUsers() {
 
       {/* Card ลูกเสือ */}
       <div className="mb-8">
+=======
+>>>>>>> Stashed changes
         <button
           onClick={() => { set('role', 'SCOUT'); setShowModal(true) }}
           className="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
@@ -222,19 +269,17 @@ export default function AdminAddUsers() {
             <p className="text-white font-bold text-base leading-tight">ลูกเสือ</p>
             <p className="text-green-300 text-xs mt-1">เพิ่มลูกเสือเข้าระบบ</p>
             <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
-              <span>เพิ่มเลย</span>
-              <ChevronRight size={12} />
+              <span>เพิ่มเลย</span><ChevronRight size={12} />
             </div>
           </div>
         </button>
       </div>
 
-      {/* ══ Modal ══════════════════════════════════════════════════════════════ */}
       {showModal && (
         <Modal onClose={() => { setShowModal(false); setForm(EMPTY); setErrors({}) }}>
-          {/* Header */}
-          <div className={`px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-scout-700`}>
+          <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-scout-700">
             <div className="flex items-center gap-3">
+<<<<<<< Updated upstream
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                 isAdmin ? 'bg-green-300 dark:bg-green-900/50' :
                 isCampManager ? 'bg-green-300 dark:bg-green-900/50' :
@@ -249,6 +294,13 @@ export default function AdminAddUsers() {
                   isLeader ? 'text-green-800 dark:text-green-400' : 
                   'text-green-800 dark:text-green-400'
                 }`} />
+=======
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isLeader ? 'bg-scout-100 dark:bg-scout-900/50' : 'bg-emerald-100 dark:bg-emerald-900/40'}`}>
+                {isLeader
+                  ? <Shield size={18} className="text-scout-600 dark:text-scout-400" />
+                  : <Users size={18} className="text-emerald-600 dark:text-emerald-400" />
+                }
+>>>>>>> Stashed changes
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
@@ -269,9 +321,9 @@ export default function AdminAddUsers() {
             </button>
           </div>
 
-          {/* Toggle role */}
           <div className="px-5 pt-4">
             <div className="flex bg-gray-100 dark:bg-scout-900 p-1 rounded-xl">
+<<<<<<< Updated upstream
               {[
                 {v:'ADMIN',l:'ผู้ดูแลระบบ'},
                 {v:'CAMP_MANAGER',l:'ผู้ดูแลค่าย'},
@@ -279,6 +331,9 @@ export default function AdminAddUsers() {
                 {v:'STAFF',l:'ผู้จัดกิจกรรม'},
                 {v:'SCOUT',l:'ลูกเสือ'}
               ].map(r => (
+=======
+              {[{ v: 'TROOP_LEADER', l: 'ผู้กำกับหมู่' }, { v: 'SCOUT', l: 'ลูกเสือ' }].map(r => (
+>>>>>>> Stashed changes
                 <button
                   key={r.v}
                   onClick={() => set('role', r.v)}
@@ -290,12 +345,10 @@ export default function AdminAddUsers() {
             </div>
           </div>
 
-          {/* Form body */}
           <div className="px-5 py-4 space-y-4">
-
-            {/* Section: บัญชี */}
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ข้อมูลบัญชี</p>
 
+<<<<<<< Updated upstream
             <Field label="ชื่อผู้ใช้" error={errors.username}>
               <input type="text" value={form.username} onChange={e => set('username', e.target.value)} className={INPUT} placeholder="เช่น leader_somchai" />
             </Field>
@@ -308,16 +361,68 @@ export default function AdminAddUsers() {
                 <input type="password" value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} className={INPUT} placeholder="••••••••" />
               </Field>
             </div>
+=======
+            <Field label="ชื่อผู้ใช้ *" error={errors.username}>
+              <input
+                type="text"
+                value={form.username}
+                onChange={e => set('username', e.target.value)}
+                className={INPUT}
+                placeholder={isLeader ? 'เช่น leader_somchai' : 'เช่น somchai_scout'}
+              />
+            </Field>
 
-            {/* Section: ข้อมูลส่วนตัว */}
+            {!isLeader ? (
+              <Field label="เลขบัตรประชาชน 13 หลัก * (ใช้เป็นรหัสผ่าน)" error={errors.citizenId}>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={form.citizenId}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '')
+                    set('citizenId', val)
+                    if (e.target.value !== val) {
+                      setErrors(er => ({ ...er, citizenId: 'กรอกได้เฉพาะตัวเลขเท่านั้น' }))
+                    } else if (val.length > 0 && val.length < 13) {
+                      setErrors(er => ({ ...er, citizenId: `กรอกแล้ว ${val.length}/13 หลัก` }))
+                    } else {
+                      setErrors(er => ({ ...er, citizenId: '' }))
+                    }
+                  }}
+                  className={INPUT}
+                  placeholder="กรอกเลขบัตรประชาชน 13 หลัก"
+                  maxLength={13}
+                />
+                <p className="text-xs mt-1 text-gray-400">
+                  {form.citizenId.length}/13 หลัก · 🔒 ใช้เป็นรหัสผ่านในการเข้าสู่ระบบ
+                </p>
+              </Field>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="รหัสผ่าน *" error={errors.password}>
+                  <input type="password" value={form.password} onChange={e => set('password', e.target.value)} className={INPUT} placeholder="••••••••" />
+                </Field>
+                <Field label="ยืนยันรหัสผ่าน *" error={errors.confirmPassword}>
+                  <input type="password" value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} className={INPUT} placeholder="••••••••" />
+                </Field>
+              </div>
+            )}
+>>>>>>> Stashed changes
+
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">ข้อมูลส่วนตัว</p>
 
             <Field label="คำนำหน้า" error={errors.prefix}>
               <select value={form.prefix} onChange={e => set('prefix', e.target.value)} className={INPUT}>
                 <option value="">เลือกคำนำหน้า</option>
+<<<<<<< Updated upstream
                 {(isAdmin || isCampManager || isStaff || isLeader
                   ? ['นาย','นาง','นางสาว']
                   : ['ด.ช.','ด.ญ.','นาย','นาง','นางสาว']
+=======
+                {(isLeader
+                  ? ['นาย', 'นาง', 'นางสาว']
+                  : ['ด.ช.', 'ด.ญ.', 'นาย', 'นาง', 'นางสาว']
+>>>>>>> Stashed changes
                 ).map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </Field>
@@ -371,26 +476,27 @@ export default function AdminAddUsers() {
                     </select>
                   </Field>
                 </div>
-
                 <Field label="อีเมล">
                   <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
                 </Field>
-
                 <Field label="การแพ้ (ถ้ามี)">
                   <input type="text" value={form.allergies} onChange={e => set('allergies', e.target.value)} className={INPUT} placeholder="เช่น แพ้ถั่ว แพ้ยาเพนิซิลิน" />
                 </Field>
-
                 <Field label="โรคประจำตัว (ถ้ามี)">
                   <input type="text" value={form.congenitalDisease} onChange={e => set('congenitalDisease', e.target.value)} className={INPUT} placeholder="เช่น โรคหอบหืด เบาหวาน" />
                 </Field>
               </>
             )}
 
+<<<<<<< Updated upstream
             {(isStaff || isLeader) && (
               <>
                 <Field label="อีเมล">
                   <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
                 </Field>
+=======
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">ค่าย {isLeader && '/ หมู่'}</p>
+>>>>>>> Stashed changes
 
                 <Field label="จังหวัด" error={errors.province}>
                   <select value={form.province} onChange={e => set('province', e.target.value)} className={INPUT}>
@@ -424,7 +530,6 @@ export default function AdminAddUsers() {
             )}
           </div>
 
-          {/* Footer */}
           <div className="px-5 pb-6 flex gap-3">
             <button
               onClick={() => { setShowModal(false); setForm(EMPTY); setErrors({}) }}

@@ -7,12 +7,11 @@ import { createError } from '../middleware/errorHandler.js'
 const router = Router()
 router.use(authenticate, requireRole('ADMIN'))
 
-// GET /api/admin/accounts
 router.get('/accounts', async (req, res) => {
   const users = await prisma.user.findMany({
     select: {
       id: true, username: true, role: true, name: true, campId: true, camp: true,
-      leadingSquads: true,  // ✅ เปลี่ยนจาก leadingSquad
+      leadingSquads: true,
       staffActivity: true,
       scoutAccount: { select: { id: true, squadId: true, firstName: true, lastName: true } }
     },
@@ -21,24 +20,37 @@ router.get('/accounts', async (req, res) => {
   res.json(users)
 })
 
-// POST /api/admin/accounts
 router.post('/accounts', async (req, res) => {
-  const { username, password, role, name, campId, activityId, firstName, lastName, nickname, school, province, squadId, phone, email, prefix, allergies, congenitalDisease } = req.body
+  const {
+    username, password, role, name, campId, activityId,
+    firstName, lastName, nickname, school, province, squadId,
+    phone, email, prefix, allergies, congenitalDisease,
+    citizenId // ✅ รับ citizenId จาก frontend
+  } = req.body
 
-  if (!username || !password || !role || !name) {
-    return res.status(400).json({
-      error: 'กรุณากรอกข้อมูลให้ครบถ้วน: username, password, role, name'
-    })
+  if (!username || !role || !name) {
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' })
+  }
+
+  // ✅ ลูกเสือต้องมี citizenId 13 หลัก
+  if (role === 'SCOUT') {
+    if (!citizenId || !/^\d{13}$/.test(citizenId)) {
+      return res.status(400).json({ error: 'กรุณากรอกเลขบัตรประชาชน 13 หลัก' })
+    }
+  } else {
+    if (!password) {
+      return res.status(400).json({ error: 'กรุณากรอกรหัสผ่าน' })
+    }
   }
 
   const existingUser = await prisma.user.findUnique({ where: { username } })
   if (existingUser) {
-    return res.status(400).json({
-      error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น'
-    })
+    return res.status(400).json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น' })
   }
 
-  const hashed = await bcrypt.hash(password, 10)
+  // ✅ ลูกเสือ: hash citizenId เป็น password (fallback กรณีใช้ bcrypt)
+  const hashed = await bcrypt.hash(role === 'SCOUT' ? citizenId : password, 10)
+
   const user = await prisma.user.create({
     data: {
       username,
@@ -56,7 +68,6 @@ router.post('/accounts', async (req, res) => {
     }
   })
 
-  // ถ้า role เป็น SCOUT สร้าง Scout record อัตโนมัติ
   if (role === 'SCOUT') {
     const scoutCode = `SC${Date.now().toString().slice(-6)}`
     const parts = name.trim().split(' ')
@@ -74,23 +85,20 @@ router.post('/accounts', async (req, res) => {
         email: email || null,
         allergies: allergies || null,
         congenitalDisease: congenitalDisease || null,
+        citizenId: citizenId, // ✅ เก็บ citizenId
         squadId: squadId || null,
         userId: user.id
       }
     })
   }
 
-  // ✅ เปลี่ยนจาก leaderId เป็น connect many-to-many
   if (role === 'TROOP_LEADER' && squadId) {
     await prisma.squad.update({
       where: { id: squadId },
-      data: {
-        leaders: { connect: { id: user.id } }
-      }
+      data: { leaders: { connect: { id: user.id } } }
     })
   }
 
-  // ถ้า role เป็น STAFF ให้ผูก activityId
   if (role === 'STAFF' && activityId) {
     await prisma.activity.update({
       where: { id: activityId },
@@ -102,15 +110,12 @@ router.post('/accounts', async (req, res) => {
   res.status(201).json(safe)
 })
 
-// PATCH /api/admin/accounts/:id
 router.patch('/accounts/:id', async (req, res) => {
   const { name, role, campId, activityId, password, squadId } = req.body
-
   const data = { name, role, campId: campId || null }
   if (password) data.password = await bcrypt.hash(password, 10)
   const user = await prisma.user.update({ where: { id: req.params.id }, data })
 
-  // ถ้า role เป็น SCOUT ให้อัปเดต squadId ใน Scout ด้วย
   if (role === 'SCOUT') {
     await prisma.scout.updateMany({
       where: { userId: req.params.id },
@@ -118,37 +123,23 @@ router.patch('/accounts/:id', async (req, res) => {
     })
   }
 
-  // ✅ เปลี่ยนจาก leaderId เป็น connect/disconnect many-to-many
   if (role === 'TROOP_LEADER') {
-    // ถอดออกจากหมู่เดิมทั้งหมดก่อน
     await prisma.user.update({
       where: { id: req.params.id },
-      data: {
-        leadingSquads: { set: [] }  // ✅ disconnect ทั้งหมด
-      }
+      data: { leadingSquads: { set: [] } }
     })
-    // ผูกหมู่ใหม่
     if (squadId) {
       await prisma.squad.update({
         where: { id: squadId },
-        data: {
-          leaders: { connect: { id: req.params.id } }
-        }
+        data: { leaders: { connect: { id: req.params.id } } }
       })
     }
   }
 
-  // ถ้า role เป็น STAFF ให้ผูก activityId ผ่าน Activity.staffId
   if (role === 'STAFF') {
-    await prisma.activity.updateMany({
-      where: { staffId: req.params.id },
-      data: { staffId: null }
-    })
+    await prisma.activity.updateMany({ where: { staffId: req.params.id }, data: { staffId: null } })
     if (activityId) {
-      await prisma.activity.update({
-        where: { id: activityId },
-        data: { staffId: req.params.id }
-      })
+      await prisma.activity.update({ where: { id: activityId }, data: { staffId: req.params.id } })
     }
   }
 
@@ -156,25 +147,18 @@ router.patch('/accounts/:id', async (req, res) => {
   res.json(safe)
 })
 
-// DELETE /api/admin/accounts/:id
 router.delete('/accounts/:id', async (req, res) => {
-  // ✅ ลบ AuditLog ก่อน
   await prisma.auditLog.deleteMany({ where: { userId: req.params.id } })
-
-  // ✅ disconnect ออกจากหมู่ทั้งหมด
   await prisma.user.update({
     where: { id: req.params.id },
     data: { leadingSquads: { set: [] } }
   })
-
   await prisma.scout.deleteMany({ where: { userId: req.params.id } })
   await prisma.activity.updateMany({ where: { staffId: req.params.id }, data: { staffId: null } })
   await prisma.user.delete({ where: { id: req.params.id } })
-
   res.json({ message: 'ลบบัญชีสำเร็จ' })
 })
 
-// GET /api/admin/audit
 router.get('/audit', async (req, res) => {
   const { role, from, to, limit = 50, skip = 0 } = req.query
   const where = {}
@@ -194,7 +178,6 @@ router.get('/audit', async (req, res) => {
   res.json(logs)
 })
 
-// POST /api/admin/import-scouts
 router.post('/import-scouts', async (req, res) => {
   const { scouts } = req.body
   if (!Array.isArray(scouts)) throw createError(400, 'ข้อมูลต้องเป็น array')
@@ -210,42 +193,27 @@ router.post('/import-scouts', async (req, res) => {
       const user = await prisma.user.upsert({
         where: { username },
         update: {},
-        create: {
-          username,
-          password: hashedPassword,
-          role: 'SCOUT',
-          name: `${s.firstName} ${s.lastName}`,
-          campId: s.campId || null
-        }
+        create: { username, password: hashedPassword, role: 'SCOUT', name: `${s.firstName} ${s.lastName}`, campId: s.campId || null }
       })
       const scout = await prisma.scout.upsert({
         where: { scoutCode },
         create: { ...s, scoutCode, userId: user.id },
         update: { ...s, userId: user.id }
       })
-      results.push({
-        scout,
-        user: { id: user.id, username: user.username, password: defaultPassword }
-      })
+      results.push({ scout, user: { id: user.id, username: user.username, password: defaultPassword } })
     } catch (error) {
-      console.error(`Error importing scout ${s.scoutCode}:`, error)
       results.push({ error: error.message, scoutCode: s.scoutCode || 'unknown' })
     }
   }
 
   const successCount = results.filter(r => !r.error).length
   const errorCount = results.filter(r => r.error).length
-
   res.status(201).json({ count: successCount, errors: errorCount, scouts: results })
 })
 
-// GET /api/admin/scouts/available
 router.get('/scouts/available', async (req, res) => {
   const scouts = await prisma.scout.findMany({
-    where: {
-      squadId: null,
-      user: { role: 'SCOUT' }
-    },
+    where: { squadId: null, user: { role: 'SCOUT' } },
     select: {
       id: true, firstName: true, lastName: true,
       scoutCode: true, school: true, email: true,
@@ -256,54 +224,33 @@ router.get('/scouts/available', async (req, res) => {
   res.json(scouts)
 })
 
-// GET /api/admin/leaders/available
 router.get('/leaders/available', async (req, res) => {
-  // ✅ เปลี่ยนจาก leadingSquad: null เป็นเช็ค leaders none
   const leaders = await prisma.user.findMany({
-    where: {
-      role: 'TROOP_LEADER',
-      leadingSquads: { none: {} }  // ✅ ยังไม่มีหมู่เลย
-    },
-    select: {
-      id: true, name: true, username: true,
-    },
+    where: { role: 'TROOP_LEADER', leadingSquads: { none: {} } },
+    select: { id: true, name: true, username: true },
     orderBy: { name: 'asc' }
   })
-
   const transformedLeaders = leaders.map(leader => ({
     ...leader,
     firstName: leader.name.split(' ')[0] || leader.name,
     lastName: leader.name.split(' ').slice(1).join(' ') || '',
-    experience: 'ไม่ระบุ',
-    specialization: 'ไม่ระบุ',
-    phone: ''
+    experience: 'ไม่ระบุ', specialization: 'ไม่ระบุ', phone: ''
   }))
-
   res.json(transformedLeaders)
 })
 
-// POST /api/admin/scouts/assign
 router.post('/scouts/assign', async (req, res) => {
   const { scoutIds, squadId } = req.body
-  await prisma.scout.updateMany({
-    where: { id: { in: scoutIds } },
-    data: { squadId: squadId || null }
-  })
+  await prisma.scout.updateMany({ where: { id: { in: scoutIds } }, data: { squadId: squadId || null } })
   res.json({ message: 'จัดสรรลูกเสือสำเร็จ' })
 })
 
-// POST /api/admin/leaders/assign
 router.post('/leaders/assign', async (req, res) => {
   const { leaderIds, squadId } = req.body
-  // ✅ เปลี่ยนจาก leaderId เป็น connect many-to-many
   if (squadId && leaderIds?.length > 0) {
     await prisma.squad.update({
       where: { id: squadId },
-      data: {
-        leaders: {
-          connect: leaderIds.map(id => ({ id }))
-        }
-      }
+      data: { leaders: { connect: leaderIds.map(id => ({ id })) } }
     })
   }
   res.json({ message: 'จัดสรรผู้กำกับสำเร็จ' })
