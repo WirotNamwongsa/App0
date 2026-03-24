@@ -68,16 +68,28 @@ export default function AdminAddUsers() {
     if (!form.firstName.trim()) e.firstName = 'กรุณากรอกชื่อจริง'
     if (!form.lastName.trim()) e.lastName = 'กรุณากรอกนามสกุล'
     if (!form.prefix) e.prefix = 'กรุณาเลือกคำนำหน้า'
-    if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
     if (form.role === 'SCOUT') {
+      if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
       if (!form.nickname.trim()) e.nickname = 'กรุณากรอกชื่อเล่น'
       if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
       if (!form.province) e.province = 'กรุณาเลือกจังหวัด'
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
-    } else {
+      if (!form.squadId) e.squadId = 'กรุณาเลือกหมู่'
+    } else if (form.role === 'CAMP_MANAGER') {
+      if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
+      if (!form.email.trim()) e.email = 'กรุณากรอกอีเมล'
+      if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
+    } else if (form.role === 'TROOP_LEADER') {
+      if (!form.campId) e.campId = 'กรุณาเลือกค่าย'
       if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
       if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
       if (!form.squadId) e.squadId = 'กรุณาเลือกหมู่'
+      if (!form.nickname.trim()) e.nickname = 'กรุณากรอกชื่อเล่น'
+    } else if (form.role === 'STAFF') {
+      if (!form.school.trim()) e.school = 'กรุณากรอกสถานศึกษา'
+      if (!form.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
+    } else if (form.role === 'ADMIN') {
+      if (!form.email.trim()) e.email = 'กรุณากรอกอีเมล'
     }
     return e
   }
@@ -89,7 +101,7 @@ export default function AdminAddUsers() {
     const fullName = `${form.firstName} ${form.lastName}`.trim()
     const userData = { username: form.username, password: form.password, name: fullName, role: form.role, campId: form.campId || null, firstName: form.firstName, lastName: form.lastName, school: form.school, phone: form.phone, prefix: form.prefix }
     if (form.role === 'SCOUT') {
-      Object.assign(userData, { nickname: form.nickname, birthDate: form.birthDate, province: form.province, email: form.email, allergies: form.allergies, congenitalDisease: form.congenitalDisease })
+      Object.assign(userData, { nickname: form.nickname, birthDate: form.birthDate, province: form.province, email: form.email, allergies: form.allergies, congenitalDisease: form.congenitalDisease, squadId: form.squadId })
     } else {
       userData.squadId = form.squadId
       userData.province = form.province
@@ -101,17 +113,63 @@ export default function AdminAddUsers() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const isLeader = form.role === 'TROOP_LEADER'
+  const isAdmin = form.role === 'ADMIN'
+  const isCampManager = form.role === 'CAMP_MANAGER'
+  const isStaff = form.role === 'STAFF'
+  const isScout = form.role === 'SCOUT'
 
   return (
     <div className="page">
       <PageHeader title="เพิ่มผู้ใช้" />
 
       {/* Hero area */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* Card Admin */}
+        <button
+          onClick={() => { set('role', 'ADMIN'); setShowModal(true) }}
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
+          <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+              <Shield size={20} className="text-white" />
+            </div>
+            <p className="text-white font-bold text-base leading-tight">ผู้ดูแลระบบ</p>
+            <p className="text-green-300 text-xs mt-1">เพิ่มผู้ดูแลระบบ</p>
+            <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
+              <span>เพิ่มเลย</span>
+              <ChevronRight size={12} />
+            </div>
+          </div>
+        </button>
+
+        {/* Card ผู้ดูแลค่าย */}
+        <button
+          onClick={() => { set('role', 'CAMP_MANAGER'); setShowModal(true) }}
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
+          <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+              <Shield size={20} className="text-white" />
+            </div>
+            <p className="text-white font-bold text-base leading-tight">ผู้ดูแลค่าย</p>
+            <p className="text-green-300 text-xs mt-1">เพิ่มผู้ดูแลค่าย</p>
+            <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
+              <span>เพิ่มเลย</span>
+              <ChevronRight size={12} />
+            </div>
+          </div>
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 mb-8">
         {/* Card ผู้กำกับ */}
         <button
           onClick={() => { set('role', 'TROOP_LEADER'); setShowModal(true) }}
-          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-scout-600 to-scout-800 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
         >
           <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
           <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
@@ -120,7 +178,7 @@ export default function AdminAddUsers() {
               <Shield size={20} className="text-white" />
             </div>
             <p className="text-white font-bold text-base leading-tight">ผู้กำกับหมู่</p>
-            <p className="text-scout-200 text-xs mt-1">เพิ่มผู้กำกับหมู่ลูกเสือ</p>
+            <p className="text-green-300 text-xs mt-1">เพิ่มผู้กำกับหมู่ลูกเสือ</p>
             <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
               <span>เพิ่มเลย</span>
               <ChevronRight size={12} />
@@ -128,10 +186,32 @@ export default function AdminAddUsers() {
           </div>
         </button>
 
-        {/* Card ลูกเสือ */}
+        {/* Card ผู้จัดกิจกรรม */}
+        <button
+          onClick={() => { set('role', 'STAFF'); setShowModal(true) }}
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
+          <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+              <Shield size={20} className="text-white" />
+            </div>
+            <p className="text-white font-bold text-base leading-tight">ผู้จัดกิจกรรม</p>
+            <p className="text-green-300 text-xs mt-1">เพิ่มผู้จัดกิจกรรม</p>
+            <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
+              <span>เพิ่มเลย</span>
+              <ChevronRight size={12} />
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Card ลูกเสือ */}
+      <div className="mb-8">
         <button
           onClick={() => { set('role', 'SCOUT'); setShowModal(true) }}
-          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+          className="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 to-green-900 p-5 text-left shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
         >
           <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
           <div className="absolute -right-2 -bottom-6 w-32 h-32 rounded-full bg-white/5" />
@@ -140,7 +220,7 @@ export default function AdminAddUsers() {
               <Users size={20} className="text-white" />
             </div>
             <p className="text-white font-bold text-base leading-tight">ลูกเสือ</p>
-            <p className="text-emerald-100 text-xs mt-1">เพิ่มลูกเสือเข้าระบบ</p>
+            <p className="text-green-300 text-xs mt-1">เพิ่มลูกเสือเข้าระบบ</p>
             <div className="mt-4 flex items-center gap-1 text-xs text-white/70 group-hover:text-white transition-colors">
               <span>เพิ่มเลย</span>
               <ChevronRight size={12} />
@@ -155,12 +235,28 @@ export default function AdminAddUsers() {
           {/* Header */}
           <div className={`px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-scout-700`}>
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isLeader ? 'bg-scout-100 dark:bg-scout-900/50' : 'bg-emerald-100 dark:bg-emerald-900/40'}`}>
-                {isLeader ? <Shield size={18} className="text-scout-600 dark:text-scout-400" /> : <Users size={18} className="text-emerald-600 dark:text-emerald-400" />}
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                isAdmin ? 'bg-green-300 dark:bg-green-900/50' :
+                isCampManager ? 'bg-green-300 dark:bg-green-900/50' :
+                isStaff ? 'bg-green-300 dark:bg-green-900/50' :
+                isLeader ? 'bg-green-300 dark:bg-green-900/50' : 
+                'bg-green-300 dark:bg-green-900/40'
+              }`}>
+                <Shield size={18} className={`${
+                  isAdmin ? 'text-green-800 dark:text-green-400' :
+                  isCampManager ? 'text-green-800 dark:text-green-400' :
+                  isStaff ? 'text-green-800 dark:text-green-400' :
+                  isLeader ? 'text-green-800 dark:text-green-400' : 
+                  'text-green-800 dark:text-green-400'
+                }`} />
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                  {isLeader ? 'เพิ่มผู้กำกับหมู่' : 'เพิ่มลูกเสือ'}
+                  {isAdmin ? 'เพิ่มผู้ดูแลระบบ' :
+                   isCampManager ? 'เพิ่มผู้ดูแลค่าย' :
+                   isStaff ? 'เพิ่มผู้จัดกิจกรรม' :
+                   isLeader ? 'เพิ่มผู้กำกับหมู่' : 
+                   'เพิ่มลูกเสือ'}
                 </h3>
                 <p className="text-xs text-gray-400">กรอกข้อมูลให้ครบถ้วน</p>
               </div>
@@ -176,11 +272,17 @@ export default function AdminAddUsers() {
           {/* Toggle role */}
           <div className="px-5 pt-4">
             <div className="flex bg-gray-100 dark:bg-scout-900 p-1 rounded-xl">
-              {[{v:'TROOP_LEADER',l:'ผู้กำกับหมู่'},{v:'SCOUT',l:'ลูกเสือ'}].map(r => (
+              {[
+                {v:'ADMIN',l:'ผู้ดูแลระบบ'},
+                {v:'CAMP_MANAGER',l:'ผู้ดูแลค่าย'},
+                {v:'TROOP_LEADER',l:'ผู้กำกับหมู่'},
+                {v:'STAFF',l:'ผู้จัดกิจกรรม'},
+                {v:'SCOUT',l:'ลูกเสือ'}
+              ].map(r => (
                 <button
                   key={r.v}
                   onClick={() => set('role', r.v)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${form.role === r.v ? 'bg-white dark:bg-scout-700 text-scout-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${form.role === r.v ? 'bg-white dark:bg-scout-700 text-scout-700 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   {r.l}
                 </button>
@@ -194,15 +296,15 @@ export default function AdminAddUsers() {
             {/* Section: บัญชี */}
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ข้อมูลบัญชี</p>
 
-            <Field label="ชื่อผู้ใช้ *" error={errors.username}>
+            <Field label="ชื่อผู้ใช้" error={errors.username}>
               <input type="text" value={form.username} onChange={e => set('username', e.target.value)} className={INPUT} placeholder="เช่น leader_somchai" />
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="รหัสผ่าน *" error={errors.password}>
+              <Field label="รหัสผ่าน" error={errors.password}>
                 <input type="password" value={form.password} onChange={e => set('password', e.target.value)} className={INPUT} placeholder="••••••••" />
               </Field>
-              <Field label="ยืนยันรหัสผ่าน *" error={errors.confirmPassword}>
+              <Field label="ยืนยันรหัสผ่าน" error={errors.confirmPassword}>
                 <input type="password" value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} className={INPUT} placeholder="••••••••" />
               </Field>
             </div>
@@ -210,10 +312,10 @@ export default function AdminAddUsers() {
             {/* Section: ข้อมูลส่วนตัว */}
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">ข้อมูลส่วนตัว</p>
 
-            <Field label="คำนำหน้า *" error={errors.prefix}>
+            <Field label="คำนำหน้า" error={errors.prefix}>
               <select value={form.prefix} onChange={e => set('prefix', e.target.value)} className={INPUT}>
                 <option value="">เลือกคำนำหน้า</option>
-                {(isLeader
+                {(isAdmin || isCampManager || isStaff || isLeader
                   ? ['นาย','นาง','นางสาว']
                   : ['ด.ช.','ด.ญ.','นาย','นาง','นางสาว']
                 ).map(p => <option key={p} value={p}>{p}</option>)}
@@ -221,49 +323,48 @@ export default function AdminAddUsers() {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="ชื่อจริง *" error={errors.firstName}>
+              <Field label="ชื่อจริง" error={errors.firstName}>
                 <input type="text" value={form.firstName} onChange={e => set('firstName', e.target.value)} className={INPUT} placeholder="ชื่อจริง" />
               </Field>
-              <Field label="นามสกุล *" error={errors.lastName}>
+              <Field label="นามสกุล" error={errors.lastName}>
                 <input type="text" value={form.lastName} onChange={e => set('lastName', e.target.value)} className={INPUT} placeholder="นามสกุล" />
               </Field>
             </div>
 
             {!isLeader && (
-              <Field label="ชื่อเล่น *" error={errors.nickname}>
+              <Field label="ชื่อเล่น" error={errors.nickname}>
                 <input type="text" value={form.nickname} onChange={e => set('nickname', e.target.value)} className={INPUT} placeholder="ชื่อเล่น" />
               </Field>
             )}
 
-            <Field label="สถานศึกษา *" error={errors.school}>
-              <input type="text" value={form.school} onChange={e => set('school', e.target.value)} className={INPUT} placeholder="โรงเรียน / มหาวิทยาลัย" />
-            </Field>
+            {isLeader && (
+              <Field label="ชื่อเล่น" error={errors.nickname}>
+                <input type="text" value={form.nickname} onChange={e => set('nickname', e.target.value)} className={INPUT} placeholder="ชื่อเล่น" />
+              </Field>
+            )}
 
-            <Field label="เบอร์โทรศัพท์ *" error={errors.phone}>
+            {(!isAdmin && !isCampManager) && (
+              <Field label="สถานศึกษา" error={errors.school}>
+                <input type="text" value={form.school} onChange={e => set('school', e.target.value)} className={INPUT} placeholder="โรงเรียน / มหาวิทยาลัย" />
+              </Field>
+            )}
+            <Field label="เบอร์โทรศัพท์" error={errors.phone}>
               <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} className={INPUT} placeholder="0812345678" />
             </Field>
 
-            {isLeader && (
-              <>
-                <Field label="จังหวัด">
-                  <select value={form.province} onChange={e => set('province', e.target.value)} className={INPUT}>
-                    <option value="">เลือกจังหวัด</option>
-                    {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </Field>
-                <Field label="อีเมล">
-                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
-                </Field>
-              </>
+            {(isAdmin || isCampManager) && (
+              <Field label="อีเมล" error={errors.email}>
+                <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
+              </Field>
             )}
 
-            {!isLeader && (
+            {(isScout) && (
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="วันเกิด">
                     <input type="date" value={form.birthDate} onChange={e => set('birthDate', e.target.value)} className={INPUT} />
                   </Field>
-                  <Field label="จังหวัด *" error={errors.province}>
+                  <Field label="จังหวัด" error={errors.province}>
                     <select value={form.province} onChange={e => set('province', e.target.value)} className={INPUT}>
                       <option value="">เลือกจังหวัด</option>
                       {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
@@ -285,18 +386,32 @@ export default function AdminAddUsers() {
               </>
             )}
 
-            {/* Section: ค่าย / หมู่ */}
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">ค่าย {isLeader && '/ หมู่'}</p>
+            {(isStaff || isLeader) && (
+              <>
+                <Field label="อีเมล">
+                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={INPUT} placeholder="example@email.com" />
+                </Field>
 
-            <Field label="ค่าย *" error={errors.campId}>
-              <select value={form.campId} onChange={e => set('campId', e.target.value)} className={INPUT}>
-                <option value="">เลือกค่าย</option>
-                {camps.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </Field>
+                <Field label="จังหวัด" error={errors.province}>
+                  <select value={form.province} onChange={e => set('province', e.target.value)} className={INPUT}>
+                    <option value="">เลือกจังหวัด</option>
+                    {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </Field>
+              </>
+            )}
 
-            {isLeader && form.campId && (
-              <Field label="หมู่ *" error={errors.squadId}>
+            {(isCampManager || isScout || isLeader) && (
+              <Field label="ค่าย" error={errors.campId}>
+                <select value={form.campId} onChange={e => set('campId', e.target.value)} className={INPUT}>
+                  <option value="">เลือกค่าย</option>
+                  {camps.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </Field>
+            )}
+
+            {(isLeader || isScout) && form.campId && (
+              <Field label="หมู่" error={errors.squadId}>
                 <select value={form.squadId} onChange={e => set('squadId', e.target.value)} className={INPUT}>
                   <option value="">เลือกหมู่</option>
                   {squads.map(s => (
@@ -320,7 +435,7 @@ export default function AdminAddUsers() {
             <button
               onClick={submit}
               disabled={createMutation.isLoading}
-              className={`flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-md transition disabled:opacity-50 ${isLeader ? 'bg-scout-600 hover:bg-scout-700 shadow-scout-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}
+              className={`flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-md transition disabled:opacity-50 ${isLeader ? 'bg-green-800 hover:bg-green-900 shadow-green-800/20' : 'bg-green-800 hover:bg-green-900 shadow-green-800/20'}`}
             >
               {createMutation.isLoading ? 'กำลังสร้าง...' : 'สร้างบัญชี'}
             </button>

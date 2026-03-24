@@ -111,9 +111,8 @@ export default function AdminAccounts() {
 
   return (
     <div className="page">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h1 className="text-xl font-display font-bold text-scout-900 dark:text-white">จัดการบัญชี</h1>
-        <button onClick={openCreate} className="btn-primary text-sm px-4 py-2.5"><Plus size={16} /> เพิ่ม</button>
       </div>
 
       <div className="relative mb-3">

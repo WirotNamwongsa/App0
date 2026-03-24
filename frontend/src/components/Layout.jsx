@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Calendar, QrCode, User, Users, FileText, MapPin, ScanLine, LayoutDashboard, ClipboardList, LogOut, ChevronRight, Menu, UserPlus, Group } from 'lucide-react'
+import { Home, Calendar, QrCode, User, Users, FileText, MapPin, ScanLine, LayoutDashboard, ClipboardList, LogOut, ChevronRight, Menu, UserPlus, Group, BookOpen } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import ThemeToggle from './ThemeToggle'
 import BottomNav from './BottomNav'
@@ -17,6 +17,7 @@ const navConfig = {
     { to: '/squad-leader/home', icon: Users, label: 'หมู่ของฉัน' },
     { to: '/leader/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
+    { to: '/squad-leader/guide', icon: BookOpen, label: 'คู่มือ' },
     { to: '/leader/profile', icon: User, label: 'โปรไฟล์' },
   ],
   STAFF: [
@@ -34,7 +35,7 @@ const navConfig = {
   ADMIN: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'ภาพรวม' },
     { to: '/admin/activities', icon: MapPin, label: 'กิจกรรม' },
-     { to: '/admin/add-users', icon: UserPlus, label: 'เพิ่มผู้กำกับและลูกเสือ' },
+     { to: '/admin/add-users', icon: UserPlus, label: 'เพิ่มผู้ใช้' },
     { to: '/admin/accounts', icon: Users, label: 'บัญชี' },
     { to: '/admin/camps', icon: FileText, label: 'ค่าย' },
     { to: '/admin/audit', icon: ClipboardList, label: 'Audit' },

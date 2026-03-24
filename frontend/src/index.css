@@ -74,6 +74,9 @@
 
 .page { @apply min-h-screen pb-24 md:pb-6 pt-4 px-4 max-w-2xl mx-auto; }
 
+/* Hide page header when modal is open on mobile */
+.page.modal-open .page-header { @apply hidden sm:block; }
+
 @keyframes scan-line { 0%,100%{top:8px} 50%{top:calc(100% - 8px)} }
 .scan-line { animation: scan-line 2s ease-in-out infinite; }
 
