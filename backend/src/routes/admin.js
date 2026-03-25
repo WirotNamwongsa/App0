@@ -11,8 +11,7 @@ router.get('/accounts', async (req, res) => {
   const users = await prisma.user.findMany({
     select: {
       id: true, username: true, role: true, name: true, campId: true, camp: true,
-      leadingSquads: true,
-      staffActivity: true,
+      leadingSquads: true, staffActivity: true,
       scoutAccount: { select: { id: true, squadId: true, firstName: true, lastName: true } }
     },
     orderBy: { role: 'asc' }
@@ -24,38 +23,23 @@ router.post('/accounts', async (req, res) => {
   const {
     username, password, role, name, campId, activityId,
     firstName, lastName, nickname, school, province, squadId,
-    phone, email, prefix, allergies, congenitalDisease
+    phone, email, prefix, allergies, congenitalDisease, gender
   } = req.body
 
-  if (!username || !role || !name) {
-    return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' })
-  }
-
-  if (!password) {
-    return res.status(400).json({ error: 'กรุณากรอกรหัสผ่าน' })
-  }
+  if (!username || !role || !name) return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' })
+  if (!password) return res.status(400).json({ error: 'กรุณากรอกรหัสผ่าน' })
 
   const existingUser = await prisma.user.findUnique({ where: { username } })
-  if (existingUser) {
-    return res.status(400).json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น' })
-  }
+  if (existingUser) return res.status(400).json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น' })
 
   const hashed = await bcrypt.hash(password, 10)
-
   const user = await prisma.user.create({
     data: {
-      username,
-      password: hashed,
-      role,
-      name,
+      username, password: hashed, role, name,
       campId: campId || null,
-      firstName: firstName || null,
-      lastName: lastName || null,
-      phone: phone || null,
-      email: email || null,
-      school: school || null,
-      prefix: prefix || null,
-      province: province || null,
+      firstName: firstName || null, lastName: lastName || null,
+      phone: phone || null, email: email || null,
+      school: school || null, prefix: prefix || null, province: province || null,
     }
   })
 
@@ -69,6 +53,7 @@ router.post('/accounts', async (req, res) => {
         scoutCode,
         firstName: fName,
         lastName: lName,
+        gender: gender || null, // ✅ เพิ่ม
         nickname: nickname || fName,
         school: school || '-',
         province: province || '-',
@@ -90,10 +75,7 @@ router.post('/accounts', async (req, res) => {
   }
 
   if (role === 'STAFF' && activityId) {
-    await prisma.activity.update({
-      where: { id: activityId },
-      data: { staffId: user.id }
-    })
+    await prisma.activity.update({ where: { id: activityId }, data: { staffId: user.id } })
   }
 
   const { password: _, ...safe } = user
@@ -107,22 +89,13 @@ router.patch('/accounts/:id', async (req, res) => {
   const user = await prisma.user.update({ where: { id: req.params.id }, data })
 
   if (role === 'SCOUT') {
-    await prisma.scout.updateMany({
-      where: { userId: req.params.id },
-      data: { squadId: squadId || null }
-    })
+    await prisma.scout.updateMany({ where: { userId: req.params.id }, data: { squadId: squadId || null } })
   }
 
   if (role === 'TROOP_LEADER') {
-    await prisma.user.update({
-      where: { id: req.params.id },
-      data: { leadingSquads: { set: [] } }
-    })
+    await prisma.user.update({ where: { id: req.params.id }, data: { leadingSquads: { set: [] } } })
     if (squadId) {
-      await prisma.squad.update({
-        where: { id: squadId },
-        data: { leaders: { connect: { id: req.params.id } } }
-      })
+      await prisma.squad.update({ where: { id: squadId }, data: { leaders: { connect: { id: req.params.id } } } })
     }
   }
 
@@ -139,10 +112,7 @@ router.patch('/accounts/:id', async (req, res) => {
 
 router.delete('/accounts/:id', async (req, res) => {
   await prisma.auditLog.deleteMany({ where: { userId: req.params.id } })
-  await prisma.user.update({
-    where: { id: req.params.id },
-    data: { leadingSquads: { set: [] } }
-  })
+  await prisma.user.update({ where: { id: req.params.id }, data: { leadingSquads: { set: [] } } })
   await prisma.scout.deleteMany({ where: { userId: req.params.id } })
   await prisma.activity.updateMany({ where: { staffId: req.params.id }, data: { staffId: null } })
   await prisma.user.delete({ where: { id: req.params.id } })
@@ -162,8 +132,7 @@ router.get('/audit', async (req, res) => {
     where,
     include: { user: { select: { id: true, name: true, role: true } } },
     orderBy: { createdAt: 'desc' },
-    take: parseInt(limit),
-    skip: parseInt(skip)
+    take: parseInt(limit), skip: parseInt(skip)
   })
   res.json(logs)
 })
@@ -181,8 +150,7 @@ router.post('/import-scouts', async (req, res) => {
       const scoutCode = s.scoutCode || `SC${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`
       const username = `scout_${scoutCode.toLowerCase()}`
       const user = await prisma.user.upsert({
-        where: { username },
-        update: {},
+        where: { username }, update: {},
         create: { username, password: hashedPassword, role: 'SCOUT', name: `${s.firstName} ${s.lastName}`, campId: s.campId || null }
       })
       const scout = await prisma.scout.upsert({

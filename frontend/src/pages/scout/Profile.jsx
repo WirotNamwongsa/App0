@@ -9,7 +9,8 @@ export default function ScoutProfile() {
   const { logout } = useAuthStore()
 
   const fields = [
-   { label: 'ชื่อ-สกุล', value: scout ? `${scout.user?.prefix || ''} ${scout.firstName} ${scout.lastName}`.trim() : '-' },
+    { label: 'ชื่อ-สกุล', value: scout ? `${scout.user?.prefix || ''} ${scout.firstName} ${scout.lastName}`.trim() : '-' },
+    { label: 'เพศ', value: scout?.gender || '-' },
     { label: 'โรงเรียน', value: scout?.school || '-' },
     { label: 'จังหวัด', value: scout?.province || '-' },
     { label: 'เบอร์โทร', value: scout?.phone || '-' },
@@ -25,7 +26,6 @@ export default function ScoutProfile() {
     <div className="page">
       <PageHeader title="โปรไฟล์ของฉัน" />
 
-      {/* ข้อมูลทั่วไป */}
       <div className="card space-y-4 mb-4">
         {fields.map(f => (
           <div key={f.label} className="flex justify-between items-start">
@@ -35,7 +35,6 @@ export default function ScoutProfile() {
         ))}
       </div>
 
-      {/* ข้อมูลสุขภาพ */}
       <div className="card space-y-4 mb-4">
         {healthFields.map(f => (
           <div key={f.label} className="flex justify-between items-start">
@@ -47,7 +46,6 @@ export default function ScoutProfile() {
         ))}
       </div>
 
-       {/* ติดต่อผู้ดูแลค่าย */}
       <div className="card bg-scout-50 dark:bg-scout-900/30 mb-4">
         <div className="flex items-center gap-3">
           <div className="text-2xl">📞</div>

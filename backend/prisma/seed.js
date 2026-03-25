@@ -8,7 +8,7 @@ async function main() {
  
   // สร้าง Admin
   const adminPw = await bcrypt.hash('admin1234', 10)
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},
     create: { username: 'admin', password: adminPw, role: 'ADMIN', name: 'ผู้ดูแลระบบ' }
@@ -66,14 +66,23 @@ async function main() {
     update: {},
     create: { username: 'staff1', password: staffPw, role: 'STAFF', name: 'เจ้าหน้าที่ 1' }
   })
-  const staff2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'staff2' },
     update: {},
     create: { username: 'staff2', password: staffPw, role: 'STAFF', name: 'เจ้าหน้าที่ 2' }
   })
-  await prisma.activity.update({ where: { id: 'act-1' }, data: { staffId: staff1.id } })
+
+  // ✅ เคลียร์ staffId เก่าก่อน แล้วค่อย assign ใหม่
+  await prisma.activity.updateMany({
+    where: { staffId: staff1.id },
+    data: { staffId: null }
+  })
+  await prisma.activity.update({
+    where: { id: 'act-1' },
+    data: { staffId: staff1.id }
+  })
  
-  // สร้างกอง/หมู่/ลูกเสือ ตัวอย่าง
+  // สร้างกอง/หมู่
   const troop1 = await prisma.troop.upsert({
     where: { id: 'troop-1' },
     update: {},
@@ -90,28 +99,59 @@ async function main() {
   const director1 = await prisma.user.upsert({
     where: { username: 'director1' },
     update: {},
-    create: { username: 'director1', password: directorPw, role: 'TROOP_LEADER', name: 'ผู้กำกับ 1', campId: campA.id }
+    create: {
+      username: 'director1', password: directorPw,
+      role: 'TROOP_LEADER', name: 'ผู้กำกับ 1',
+      campId: campA.id, school: 'วิทยาลัยเทคนิคเชียงใหม่'
+    }
   })
-  const director2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'director2' },
     update: {},
-    create: { username: 'director2', password: directorPw, role: 'TROOP_LEADER', name: 'ผู้กำกับ 2', campId: campA.id }
+    create: {
+      username: 'director2', password: directorPw,
+      role: 'TROOP_LEADER', name: 'ผู้กำกับ 2',
+      campId: campA.id, school: 'วิทยาลัยเทคนิคเชียงใหม่'
+    }
   })
-  const director3 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'director3' },
     update: {},
-    create: { username: 'director3', password: directorPw, role: 'TROOP_LEADER', name: 'ผู้กำกับ 3', campId: campB.id }
+    create: {
+      username: 'director3', password: directorPw,
+      role: 'TROOP_LEADER', name: 'ผู้กำกับ 3',
+      campId: campB.id, school: 'วิทยาลัยเทคนิคเชียงราย'
+    }
   })
-  await prisma.squad.update({ where: { id: 'squad-1' }, data: { leaderId: director1.id } })
+
+  // ✅ เชื่อม director1 กับ squad1 แบบ many-to-many
+  await prisma.squad.update({
+    where: { id: 'squad-1' },
+    data: {
+      leaders: { connect: { id: director1.id } }
+    }
+  })
  
   // สร้างลูกเสือตัวอย่าง + user account
   const scoutPw = await bcrypt.hash('scout1234', 10)
   const scoutData = [
-    { code: 'SC001', username: 'scout001', firstName: 'สมชาย1', nickname: 'น้อง1' },
-    { code: 'SC002', username: 'scout002', firstName: 'สมชาย2', nickname: 'น้อง2' },
-    { code: 'SC003', username: 'scout003', firstName: 'สมชาย3', nickname: 'น้อง3' }
+    {
+      code: 'SC001', username: 'scout001',
+      firstName: 'สมชาย', lastName: 'ใจดี',
+      nickname: 'น้อง1', gender: 'ชาย'
+    },
+    {
+      code: 'SC002', username: 'scout002',
+      firstName: 'สมหญิง', lastName: 'ใจดี',
+      nickname: 'น้อง2', gender: 'หญิง'
+    },
+    {
+      code: 'SC003', username: 'scout003',
+      firstName: 'สมนึก', lastName: 'ใจดี',
+      nickname: 'น้อง3', gender: 'ไม่ระบุ'
+    },
   ]
-  
+ 
   for (const scout of scoutData) {
     const sc = await prisma.scout.upsert({
       where: { scoutCode: scout.code },
@@ -119,8 +159,9 @@ async function main() {
       create: {
         scoutCode: scout.code,
         firstName: scout.firstName,
-        lastName: 'ใจดี',
+        lastName: scout.lastName,
         nickname: scout.nickname,
+        gender: scout.gender,
         school: 'วิทยาลัยเทคนิคเชียงใหม่',
         province: 'เชียงใหม่',
         squadId: squad1.id
@@ -129,12 +170,18 @@ async function main() {
     const scUser = await prisma.user.upsert({
       where: { username: scout.username },
       update: {},
-      create: { username: scout.username, password: scoutPw, role: 'SCOUT', name: `${scout.firstName} ใจดี`, campId: campA.id }
+      create: {
+        username: scout.username,
+        password: scoutPw,
+        role: 'SCOUT',
+        name: `${scout.firstName} ${scout.lastName}`,
+        campId: campA.id
+      }
     })
     await prisma.scout.update({ where: { id: sc.id }, data: { userId: scUser.id } })
   }
  
-  // 🏕️ สร้าง Activity Groups (ใส่ใน main())
+  // สร้าง Activity Groups
   console.log('🏕️ Creating activity groups...')
   
   const activityGroup1 = await prisma.activityGroup.upsert({
@@ -150,7 +197,7 @@ async function main() {
     }
   })
   
-  const activityGroup2 = await prisma.activityGroup.upsert({
+  await prisma.activityGroup.upsert({
     where: { id: 'group-2' },
     update: {},
     create: { 
@@ -169,56 +216,34 @@ async function main() {
     data: { activityGroupId: activityGroup1.id }
   })
    
-  console.log('✅ Activity groups created and squad assigned!')
+  console.log('✅ Activity groups created!')
  
-  // 📅 สร้างตารางกิจกรรม (อัพเดทใหม่!)
+  // สร้างตารางกิจกรรม
   console.log('📅 Creating schedules...')
  
   const today = new Date()
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
  
-  // ตารางกิจกรรมผ่าน Activity Groups (แบบใหม่)
-  const activityGroupSchedules = [
-    { activityId: 'act-1', campId: campA.id, activityGroupId: activityGroup1.id, date: today,    slot: 'MORNING'   },
-    { activityId: 'act-2', campId: campA.id, activityGroupId: activityGroup1.id, date: today,    slot: 'AFTERNOON' },
-    { activityId: 'act-3', campId: campA.id, activityGroupId: activityGroup1.id, date: tomorrow, slot: 'MORNING'   },
-    { activityId: 'act-4', campId: campA.id, activityGroupId: activityGroup1.id, date: tomorrow, slot: 'AFTERNOON' },
-  ]
+  await prisma.schedule.createMany({
+    data: [
+      { activityId: 'act-1', campId: campA.id, activityGroupId: activityGroup1.id, squadId: null, date: today,    slot: 'MORNING'   },
+      { activityId: 'act-2', campId: campA.id, activityGroupId: activityGroup1.id, squadId: null, date: today,    slot: 'AFTERNOON' },
+      { activityId: 'act-3', campId: campA.id, activityGroupId: activityGroup1.id, squadId: null, date: tomorrow, slot: 'MORNING'   },
+      { activityId: 'act-4', campId: campA.id, activityGroupId: activityGroup1.id, squadId: null, date: tomorrow, slot: 'AFTERNOON' },
+    ],
+    skipDuplicates: true
+  })
  
-  // ตารางกิจกรรมระดับค่าย (แบบเดิม)
-  const campLevelSchedules = [
-    { activityId: 'act-7', campId: campA.id, squadId: null, activityGroupId: null, date: today,    slot: 'EVENING'   },
-    { activityId: 'act-9', campId: campA.id, squadId: null, activityGroupId: null, date: tomorrow, slot: 'EVENING'   },
-  ]
-// สร้างตารางแบบ Activity Groups
-await prisma.schedule.createMany({
-  data: activityGroupSchedules.map(schedule => ({
-    activityId: schedule.activityId,
-    campId: schedule.campId,
-    activityGroupId: schedule.activityGroupId,
-    squadId: null,
-    date: schedule.date,
-    slot: schedule.slot
-  })),
-  skipDuplicates: true
-})
- 
-// สร้างตารางแบบค่าย
-await prisma.schedule.createMany({
-  data: campLevelSchedules.map(schedule => ({
-    activityId: schedule.activityId,
-    campId: schedule.campId,
-    squadId: schedule.squadId,
-    activityGroupId: schedule.activityGroupId,
-    date: schedule.date,
-    slot: schedule.slot
-  })),
-  skipDuplicates: true
-})
+  await prisma.schedule.createMany({
+    data: [
+      { activityId: 'act-7', campId: campA.id, squadId: null, activityGroupId: null, date: today,    slot: 'EVENING' },
+      { activityId: 'act-9', campId: campA.id, squadId: null, activityGroupId: null, date: tomorrow, slot: 'EVENING' },
+    ],
+    skipDuplicates: true
+  })
  
   console.log('📅 Schedules created!')
- 
   console.log('✅ Seed complete!')
   console.log('📋 Test accounts:')
   console.log('  admin / admin1234')

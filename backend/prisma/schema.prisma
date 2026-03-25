@@ -81,6 +81,7 @@ model Scout {
   scoutCode         String   @unique
   firstName         String
   lastName          String
+  gender            String?
   nickname          String?
   birthDate         DateTime?
   school            String?
