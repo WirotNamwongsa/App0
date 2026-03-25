@@ -89,7 +89,6 @@ model Scout {
   email             String?
   allergies         String?
   congenitalDisease String?
-  citizenId         String? 
   squadId           String?
   userId            String?  @unique
   qrData            String?

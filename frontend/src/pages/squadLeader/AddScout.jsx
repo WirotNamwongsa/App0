@@ -94,7 +94,7 @@ export default function SquadLeaderAddScout() {
           <div className="bg-gray-50 dark:bg-scout-800 rounded-lg p-3">
             <p className="text-xs text-gray-400">สถานศึกษา</p>
             <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-              {availableScouts?.school || 'ยังไม่ระบุ'}
+              {user?.school || availableScouts?.school || 'ยังไม่ระบุ'}
             </p>
           </div>
         </div>
@@ -130,27 +130,48 @@ export default function SquadLeaderAddScout() {
           </div>
         ) : (
           <div className="space-y-2 max-h-96 overflow-y-auto modal-scroll">
-            {availableScouts?.scouts?.map(scout => (
-              <div key={scout.id} className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-scout-800 rounded-lg hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
-                <div className="w-12 h-12 rounded-full bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-sm font-bold text-scout-700 dark:text-scout-300">
-                  {scout.firstName?.[0]}
+            {availableScouts?.scouts?.map(scout => {
+              // ✅ ตรวจสอบว่าสถานศึกษาตรงกับผู้กำกับหรือไม่
+              const isSameSchool = !user?.school || scout.school === user.school
+              const canAdd = isSameSchool && availableScouts?.canAdd
+              
+              return (
+                <div key={scout.id} className={`flex items-center gap-3 p-4 rounded-lg transition-all ${
+                  isSameSchool 
+                    ? 'bg-gray-50 dark:bg-scout-800 hover:bg-gray-100 dark:hover:bg-scout-700' 
+                    : 'bg-gray-100 dark:bg-scout-900 opacity-60'
+                }`}>
+                  <div className="w-12 h-12 rounded-full bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-sm font-bold text-scout-700 dark:text-scout-300">
+                    {scout.firstName?.[0]}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-scout-900 dark:text-white">
+                      {scout.firstName} {scout.lastName}
+                    </p>
+                    <p className="text-xs text-gray-400">{scout.scoutCode}</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{scout.school}</p>
+                    {!isSameSchool && (
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                        ⚠️ สถานศึกษาไม่ตรงกับผู้กำกับหมู่ ({user?.school})
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleAddScout(scout.id)}
+                    disabled={!canAdd || addingScout}
+                    className={`text-sm px-4 py-2 rounded-lg transition-all ${
+                      canAdd
+                        ? 'btn-primary'
+                        : 'bg-gray-200 dark:bg-scout-700 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {addingScout ? 'กำลังเพิ่ม...' : 
+                     !isSameSchool ? 'สถานศึกษาไม่ตรงกัน' : 
+                     !availableScouts?.canAdd ? 'หมู่เต็ม' : 'เพิ่ม'}
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-scout-900 dark:text-white">
-                    {scout.firstName} {scout.lastName}
-                  </p>
-                  <p className="text-xs text-gray-400">{scout.scoutCode}</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{scout.school}</p>
-                </div>
-                <button
-                  onClick={() => handleAddScout(scout.id)}
-                  disabled={addingScout}
-                  className="btn-primary text-sm px-4 py-2"
-                >
-                  {addingScout ? 'กำลังเพิ่ม...' : 'เพิ่ม'}
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

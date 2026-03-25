@@ -68,7 +68,7 @@ export default function SquadLeaderHome() {
         </div>
         <div className="card text-center p-4">
           <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-            {squad?.scouts?.[0]?.school || '-'}
+            {user?.school || '-'}
           </p>
           <p className="text-xs text-gray-400 mt-1">สถานศึกษา</p>
         </div>

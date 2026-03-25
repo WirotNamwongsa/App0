@@ -47,7 +47,9 @@ import LeaderProfile from './pages/leader/LeaderProfile'
 import SquadLeaderHome from './pages/squadLeader/SquadLeaderHome'
 
 import SquadLeaderAddScout from './pages/squadLeader/AddScout'
-import SquadLeaderGuide from './pages/squadLeader/SquadLeaderGuide'
+
+import CreateScout from './pages/squadLeader/CreateScout'
+
 
 
 
@@ -184,7 +186,8 @@ export default function App() {
       <Route path="/squad-leader/home" element={<RequireAuth roles={['TROOP_LEADER']}><SquadLeaderHome /></RequireAuth>} />
 
       <Route path="/squad-leader/add-scout" element={<RequireAuth roles={['TROOP_LEADER']}><SquadLeaderAddScout /></RequireAuth>} />
-      <Route path="/squad-leader/guide" element={<RequireAuth roles={['TROOP_LEADER']}><SquadLeaderGuide /></RequireAuth>} />
+
+      <Route path="/squad-leader/create-scout" element={<RequireAuth roles={['TROOP_LEADER']}><CreateScout /></RequireAuth>} />
 
 
 

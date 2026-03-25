@@ -15,9 +15,9 @@ const navConfig = {
   ],
   TROOP_LEADER: [
     { to: '/squad-leader/home', icon: Users, label: 'หมู่ของฉัน' },
+    { to: '/squad-leader/create-scout', icon: UserPlus, label: 'สร้างลูกเสือ' },
     { to: '/leader/schedule', icon: Calendar, label: 'ตารางกิจกรรม' },
     { to: '/leader/report', icon: FileText, label: 'รายงาน' },
-    { to: '/squad-leader/guide', icon: BookOpen, label: 'คู่มือ' },
     { to: '/leader/profile', icon: User, label: 'โปรไฟล์' },
   ],
   STAFF: [

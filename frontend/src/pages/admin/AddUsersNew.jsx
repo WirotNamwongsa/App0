@@ -114,12 +114,10 @@ export default function AdminAddUsers() {
     setErrors({})
 
     const fullName = `${form.firstName} ${form.lastName}`.trim()
-    const isScout = form.role === 'SCOUT'
 
     const userData = {
       username: form.username,
-      password: isScout ? form.citizenId : form.password,
-      citizenId: isScout ? form.citizenId : undefined,
+      password: form.role === 'SCOUT' ? form.citizenId : form.password,
       name: fullName,
       role: form.role,
       campId: form.campId || null,

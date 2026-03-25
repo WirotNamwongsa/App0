@@ -24,23 +24,15 @@ router.post('/accounts', async (req, res) => {
   const {
     username, password, role, name, campId, activityId,
     firstName, lastName, nickname, school, province, squadId,
-    phone, email, prefix, allergies, congenitalDisease,
-    citizenId // ✅ รับ citizenId จาก frontend
+    phone, email, prefix, allergies, congenitalDisease
   } = req.body
 
   if (!username || !role || !name) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' })
   }
 
-  // ✅ ลูกเสือต้องมี citizenId 13 หลัก
-  if (role === 'SCOUT') {
-    if (!citizenId || !/^\d{13}$/.test(citizenId)) {
-      return res.status(400).json({ error: 'กรุณากรอกเลขบัตรประชาชน 13 หลัก' })
-    }
-  } else {
-    if (!password) {
-      return res.status(400).json({ error: 'กรุณากรอกรหัสผ่าน' })
-    }
+  if (!password) {
+    return res.status(400).json({ error: 'กรุณากรอกรหัสผ่าน' })
   }
 
   const existingUser = await prisma.user.findUnique({ where: { username } })
@@ -48,8 +40,7 @@ router.post('/accounts', async (req, res) => {
     return res.status(400).json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ กรุณาใช้ชื่ออื่น' })
   }
 
-  // ✅ ลูกเสือ: hash citizenId เป็น password (fallback กรณีใช้ bcrypt)
-  const hashed = await bcrypt.hash(role === 'SCOUT' ? citizenId : password, 10)
+  const hashed = await bcrypt.hash(password, 10)
 
   const user = await prisma.user.create({
     data: {
@@ -85,7 +76,6 @@ router.post('/accounts', async (req, res) => {
         email: email || null,
         allergies: allergies || null,
         congenitalDisease: congenitalDisease || null,
-        citizenId: citizenId, // ✅ เก็บ citizenId
         squadId: squadId || null,
         userId: user.id
       }
