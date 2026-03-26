@@ -245,4 +245,56 @@ router.get('/:campId/squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, 
   res.json(squads)
 })
 
+
+// POST /api/camps/:campId/organize-troops
+router.post('/:campId/organize-troops', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+  const { troops } = req.body
+  const campId = req.params.campId
+
+  // 1. เก็บ mapping เดิม: oldSquadId -> scoutIds
+  const existingSquads = await prisma.squad.findMany({
+    where: { troop: { campId } },
+    include: { scouts: { select: { id: true } } }
+  })
+  const scoutsByOldSquad = {}
+  for (const sq of existingSquads) {
+    scoutsByOldSquad[sq.id] = sq.scouts.map(s => s.id)
+  }
+
+  // 2. ลบ squad และ troop เดิม (scout ยังอยู่ squadId จะเป็น null อัตโนมัติ)
+  await prisma.squad.deleteMany({ where: { troop: { campId } } })
+  await prisma.troop.deleteMany({ where: { campId } })
+
+  // 3. สร้าง troop และ squad ใหม่ พร้อมย้าย scout
+  for (const troop of troops) {
+    const newTroop = await prisma.troop.create({
+      data: {
+        name: `กองที่ ${troop.number} (${troop.gender})`,
+        number: troop.number,
+        campId
+      }
+    })
+
+    for (let i = 0; i < troop.squads.length; i++) {
+      const oldSquadId = troop.squads[i].id
+      const oldSquad = troop.squads[i]
+
+      const newSquad = await prisma.squad.create({
+        data: { name: oldSquad.name, number: i + 1, troopId: newTroop.id }
+      })
+
+      // ดึง scoutIds จาก mapping ที่เก็บไว้ก่อนลบ
+      const scoutIds = scoutsByOldSquad[oldSquadId] || []
+      if (scoutIds.length > 0) {
+        await prisma.scout.updateMany({
+          where: { id: { in: scoutIds } },
+          data: { squadId: newSquad.id }
+        })
+      }
+    }
+  }
+
+  res.json({ message: 'จัดกองสำเร็จ' })
+})
+
 export default router

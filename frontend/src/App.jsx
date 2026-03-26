@@ -79,6 +79,7 @@ import CampReport from './pages/camp/Report'
 
 import CampActivityGroups from './pages/camp/ActivityGroups'
 
+import TroopOrganizer from './pages/camp/TroopOrganizer'
 
 
 // Admin
@@ -216,6 +217,8 @@ export default function App() {
       <Route path="/camp/schedule" element={<RequireAuth roles={['CAMP_MANAGER', 'ADMIN']}><CampSchedule /></RequireAuth>} />
 
       <Route path="/camp/report" element={<RequireAuth roles={['CAMP_MANAGER', 'ADMIN']}><CampReport /></RequireAuth>} />
+
+      <Route path="/camp/organize" element={<RequireAuth roles={['CAMP_MANAGER', 'ADMIN']}><TroopOrganizer /></RequireAuth>} />
 
 
 

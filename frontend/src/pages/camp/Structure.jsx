@@ -4,7 +4,7 @@ import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
-import { Plus, ChevronRight, Users, Building2, Star, X, TrendingUp, Search } from 'lucide-react'
+import { Plus, ChevronRight, Users, Building2, Star, X, TrendingUp, Search, Shuffle } from 'lucide-react'
 
 // ── Sub-components outside main to prevent issues ────────────────────────────
 function Modal({ children, onClose }) {
@@ -49,6 +49,7 @@ export default function CampStructure() {
   const [squadForm, setSquadForm] = useState({ name: '', number: '' })
   const [showStatsModal, setShowStatsModal] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showAssignModal, setShowAssignModal] = useState(false)
   const [viewingSquad, setViewingSquad] = useState(null)
 
   const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
@@ -77,6 +78,9 @@ export default function CampStructure() {
     sum + (t.squads?.reduce((s2, sq) => s2 + (sq._count?.scouts || 0), 0) || 0), 0
   ) || 0
 
+  // ลูกเสือที่ยังไม่ได้จัดกอง
+  const unassignedCount = Math.max((scouts?.length || 0) - totalScouts, 0)
+
   return (
     <div className="page">
 
@@ -86,6 +90,20 @@ export default function CampStructure() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">โครงสร้างค่าย</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">จัดการกองและหมู่ในค่ายของคุณ</p>
         </div>
+
+        {/* ── ปุ่มจัดกองและหมู่ ── */}
+        <button
+          onClick={() => window.location.href = '/camp/organize'}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 text-white text-sm font-bold shadow-lg hover:shadow-xl transition-all active:scale-95"
+        >
+          <Shuffle size={16} />
+          จัดกองและหมู่
+          {unassignedCount > 0 && (
+            <span className="bg-white/20 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+              {unassignedCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Summary strip */}
