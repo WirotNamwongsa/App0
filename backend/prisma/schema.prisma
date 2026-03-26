@@ -37,6 +37,7 @@ model Squad {
   id              String   @id @default(uuid())
   name            String
   number          Int
+  gender          String?
   troopId         String
   activityGroupId String?
   createdAt       DateTime @default(now())

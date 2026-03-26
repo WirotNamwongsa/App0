@@ -24,17 +24,11 @@ export default function AdminCamps() {
   const deleteCamp = useMutation(id => api.delete(`/camps/${id}`), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); toast.success('ลบค่ายและกอง/หมู่ทั้งหมดสำเร็จ') }
   })
-  const createTroop = useMutation(({ campId, ...d }) => api.post(`/camps/${campId}/troops`, d), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างกองพร้อมหมู่ 4 หมู่สำเร็จ') }
-  })
-  const createSquad = useMutation(({ campId, troopId, ...d }) => api.post(`/camps/${campId}/troops/${troopId}/squads`, d), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างหมู่สำเร็จ') }
+  const deleteSquad = useMutation(({ campId, squadId }) => api.delete(`/camps/${campId}/squads/${squadId}`), {
+    onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบหมู่สำเร็จ') }
   })
   const deleteTroop = useMutation(({ campId, troopId }) => api.delete(`/camps/${campId}/troops/${troopId}`), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบกองและหมู่ทั้งหมดสำเร็จ') }
-  })
-  const deleteSquad = useMutation(({ campId, squadId }) => api.delete(`/camps/${campId}/squads/${squadId}`), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบหมู่สำเร็จ') }
   })
   const moveScout = useMutation(({ scoutId, squadId }) => api.patch(`/camps/scouts/${scoutId}/move`, { squadId }), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('all-scouts'); closeModal(); toast.success('ย้ายลูกเสือสำเร็จ') }
@@ -47,8 +41,6 @@ export default function AdminCamps() {
   function handleSubmit() {
     const d = modal.formData
     if (modal.type === 'camp') createCamp.mutate({ name: d.name })
-    else if (modal.type === 'troop') createTroop.mutate({ campId: modal.campId, name: d.name, number: d.number || 1 })
-    else if (modal.type === 'squad') createSquad.mutate({ campId: modal.campId, troopId: modal.troopId, name: d.name, number: d.number || 1 })
     else if (modal.type === 'add-scout-to-squad') createScout.mutate({ squadId: modal.squadId, firstName: d.firstName, lastName: d.lastName, scoutCode: d.scoutCode })
     else if (modal.type === 'add-existing-scout-to-squad') moveScout.mutate({ scoutId: d.scoutId, squadId: modal.squadId })
     else if (modal.type === 'move') setModal(m => ({ ...m, type: 'move-confirm' }))
@@ -167,11 +159,6 @@ export default function AdminCamps() {
                   <ChevronRight size={16} className="text-gray-400 transition-transform duration-200"
                     style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                 </button>
-                <button onClick={() => setModal({ type: 'troop', campId: camp.id, formData: { name: '', number: '' } })}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center bg-scout-100 dark:bg-scout-700 text-scout-600 dark:text-scout-300 hover:bg-scout-200 dark:hover:bg-scout-600 transition-all"
-                  title='เพิ่มกอง'>
-                  <Plus size={15} />
-                </button>
                 <button onClick={() => openDetailsModal('camp', camp)}
                   className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all">
                   <Eye size={15} />
@@ -198,20 +185,10 @@ export default function AdminCamps() {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-scout-900 dark:text-white">{troop.name}</p>
-                              <p className="text-xs text-gray-400">{(troop.squads || []).length}/5 หมู่</p>
+                              <p className="text-xs text-gray-400">{(troop.squads || []).length}/4 หมู่</p>
                             </div>
                             <ChevronRight size={13} className="text-gray-400 ml-auto transition-transform duration-200"
                               style={{ transform: troopOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
-                          </button>
-                          <button onClick={() => setModal({ type: 'squad', campId: camp.id, troopId: troop.id, formData: { name: '', number: '' } })}
-                            disabled={(troop.squads || []).length >= 5}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                              (troop.squads || []).length >= 5
-                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                : 'bg-scout-100 dark:bg-scout-700 text-scout-600 dark:text-scout-300 hover:bg-scout-200 dark:hover:bg-scout-600'
-                            }`}
-                            title={(troop.squads || []).length >= 5 ? 'มีหมู่ครบ 5 หมู่แล้ว' : 'เพิ่มหมู่'}>
-                            <Plus size={13} />
                           </button>
                           <button onClick={() => openDetailsModal('troop', troop)}
                             className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all">
@@ -222,7 +199,6 @@ export default function AdminCamps() {
                             <Trash2 size={13} />
                           </button>
                         </div>
-
                         {/* Squads */}
                         {troopOpen && (
                           <div className="px-4 py-2 space-y-2">
@@ -397,8 +373,6 @@ export default function AdminCamps() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-scout-700">
               <h3 className="font-semibold text-scout-900 dark:text-white text-lg">
                 {modal.type === 'camp' ? 'เพิ่มค่ายย่อย'
-                  : modal.type === 'troop' ? 'เพิ่มกอง'
-                  : modal.type === 'squad' ? 'เพิ่มหมู่'
                   : modal.type === 'add-scout-to-squad' ? `เพิ่มลูกเสือใน${modal.squadName}`
                   : modal.type === 'add-existing-scout-to-squad' ? `เพิ่มลูกเสือใน${modal.squadName}`
                   : modal.type === 'view-camp-details' ? `รายละเอียดค่าย "${modal.camp.name}"`
