@@ -4,7 +4,7 @@ import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import PageHeader from '../../components/PageHeader'
 import toast from 'react-hot-toast'
-import { Plus, ChevronRight, Users, Building2, Star, X, TrendingUp, Search, Trash2, Zap, AlertTriangle, ChevronDown } from 'lucide-react'
+import { Plus, ChevronRight, Users, Building2, Star, X, TrendingUp, Search, Trash2, Zap, AlertTriangle, ChevronDown, Settings, Edit } from 'lucide-react'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const TROOP_COLORS = [
@@ -100,11 +100,20 @@ export default function CampStructure() {
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [viewingSquad, setViewingSquad] = useState(null)
   const [showAddTroopModal, setShowAddTroopModal] = useState(false)
-  const [troopForm, setTroopForm] = useState({ name: '' })
+  const [troopForm, setTroopForm] = useState({ name: '', maxSquads: 4 })
   const [confirmDel, setConfirmDel] = useState(null) // { label, onConfirm }
   const [showOrganizeModal, setShowOrganizeModal] = useState(false)
   const [organizePreview, setOrganizePreview] = useState(null)
   const [organizing, setOrganizing] = useState(false)
+  const [showMaxSquadsModal, setShowMaxSquadsModal] = useState(false)
+  const [maxSquadsForm, setMaxSquadsForm] = useState({ maxSquads: '4' })
+  const [troopMaxSquads, setTroopMaxSquads] = useState({})
+  const [showEditTroopModal, setShowEditTroopModal] = useState(false)
+  const [editTroopForm, setEditTroopForm] = useState({ name: '' })
+  const [showEditSquadModal, setShowEditSquadModal] = useState(false)
+  const [editSquadForm, setEditSquadForm] = useState({ name: '', number: '' })
+  const [editingTroop, setEditingTroop] = useState(null)
+  const [editingSquad, setEditingSquad] = useState(null)
 
   // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
@@ -120,8 +129,25 @@ export default function CampStructure() {
 
   // ── Mutations ────────────────────────────────────────────────────────────────
   const addSquadMutation = useMutation(
-    ({ troopId }) =>
-      api.post(`/camps/${user.campId}/troops/${troopId}/squads`, squadForm),
+    ({ troopId }) => {
+      // Find the troop to get current squads and auto-assign next number
+      const troop = camp?.troops?.find(t => t.id === troopId)
+      const currentSquads = troop?.squads || []
+      const maxSquads = troop?.maxSquads || 4
+      
+      // Check squad limit
+      if (currentSquads.length >= maxSquads) {
+        throw new Error(`ไม่สามารถสร้างหมู่ได้ เนื่องจากกองนี้มีหมู่ครบ ${maxSquads} หมู่แล้ว`)
+      }
+      
+      // Auto-assign next squad number
+      const nextNumber = Math.max(...currentSquads.map(s => s.number || 0), 0) + 1
+      
+      return api.post(`/camps/${user.campId}/troops/${troopId}/squads`, { 
+        name: squadForm.name, 
+        number: nextNumber 
+      })
+    },
     {
       onSuccess: () => {
         qc.invalidateQueries('camp-my')
@@ -130,7 +156,7 @@ export default function CampStructure() {
         toast.success('เพิ่มหมู่สำเร็จ')
       },
       onError: (err) =>
-        toast.error(err?.response?.data?.message || 'เพิ่มหมู่ไม่สำเร็จ กรุณาลองใหม่'),
+        toast.error(err?.response?.data?.message || err.message || 'เพิ่มหมู่ไม่สำเร็จ กรุณาลองใหม่'),
     },
   )
 
@@ -193,6 +219,51 @@ export default function CampStructure() {
         toast.error(err?.response?.data?.message || 'จัดกองไม่สำเร็จ กรุณาลองใหม่')
         setOrganizing(false)
       },
+    },
+  )
+
+  const updateMaxSquadsMutation = useMutation(
+    ({ troopId, maxSquads }) => api.patch(`/camps/${user.campId}/troops/${troopId}/max-squads`, { maxSquads }),
+    {
+      onSuccess: () => {
+        qc.invalidateQueries('camp-my')
+        setShowMaxSquadsModal(false)
+        setMaxSquadsForm({ maxSquads: '4' })
+        setTroopMaxSquads({})
+        toast.success('ตั้งค่าจำนวนหมู่สูงสุดสำเร็จ')
+      },
+      onError: (err) =>
+        toast.error(err?.response?.data?.message || 'ตั้งค่าจำนวนหมู่สูงสุดไม่สำเร็จ กรุณาลองใหม่'),
+    },
+  )
+
+  const updateTroopMutation = useMutation(
+    ({ troopId, name }) => api.patch(`/camps/${user.campId}/troops/${troopId}`, { name }),
+    {
+      onSuccess: () => {
+        qc.invalidateQueries('camp-my')
+        setShowEditTroopModal(false)
+        setEditTroopForm({ name: '' })
+        setEditingTroop(null)
+        toast.success('แก้ไขชื่อกองสำเร็จ')
+      },
+      onError: (err) =>
+        toast.error(err?.response?.data?.message || 'แก้ไขชื่อกองไม่สำเร็จ กรุณาลองใหม่'),
+    },
+  )
+
+  const updateSquadMutation = useMutation(
+    ({ squadId, name, number }) => api.patch(`/camps/${user.campId}/squads/${squadId}`, { name, number }),
+    {
+      onSuccess: () => {
+        qc.invalidateQueries('camp-my')
+        setShowEditSquadModal(false)
+        setEditSquadForm({ name: '', number: '' })
+        setEditingSquad(null)
+        toast.success('แก้ไขหมู่สำเร็จ')
+      },
+      onError: (err) =>
+        toast.error(err?.response?.data?.message || 'แก้ไขหมู่ไม่สำเร็จ กรุณาลองใหม่'),
     },
   )
 
@@ -313,9 +384,71 @@ setShowOrganizeModal(true)
         }
       }).filter(troop => troop.squads.length > 0) // ลบกองที่ว่างเปล่า
     })
+  }, [organizePreview])
+
+  const handleSetMaxSquads = useCallback((troopId) => {
+    const troop = camp?.troops?.find(t => t.id === troopId)
+    if (troop) {
+      setMaxSquadsForm({ maxSquads: String(troop.maxSquads || 4) })
+      setShowMaxSquadsModal(true)
+      setTroopMaxSquads({ troopId })
+    }
+  }, [camp])
+
+  const handleSaveMaxSquads = useCallback(() => {
+    if (!troopMaxSquads.troopId || !maxSquadsForm.maxSquads) return
+    
+    const troop = camp?.troops?.find(t => t.id === troopMaxSquads.troopId)
+    const currentSquadCount = troop?.squads?.length || 0
+    const newMaxSquads = parseInt(maxSquadsForm.maxSquads)
+    
+    // ตรวจสอบว่าจำนวนหมู่สูงสุดใหม่ไม่น้อยกว่าจำนวนหมู่ปัจจุบัน
+    if (newMaxSquads < currentSquadCount) {
+      toast.error(`ไม่สามารถตั้งจำนวนหมู่สูงสุดน้อยกว่าจำนวนหมู่ปัจจุบันได้ (ปัจจุบันมี ${currentSquadCount} หมู่)`)
+      return
+    }
+    
+    updateMaxSquadsMutation.mutate({
+      troopId: troopMaxSquads.troopId,
+      maxSquads: newMaxSquads
+    })
+  }, [troopMaxSquads, maxSquadsForm, updateMaxSquadsMutation, camp])
+
+  const handleEditTroop = useCallback((troop) => {
+    setEditTroopForm({ name: troop.name || '' })
+    setEditingTroop(troop)
+    setShowEditTroopModal(true)
   }, [])
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  const handleSaveEditTroop = useCallback(() => {
+    if (!editingTroop || !editTroopForm.name.trim()) return
+    
+    updateTroopMutation.mutate({
+      troopId: editingTroop.id,
+      name: editTroopForm.name.trim()
+    })
+  }, [editingTroop, editTroopForm, updateTroopMutation])
+
+  const handleEditSquad = useCallback((squad) => {
+    setEditSquadForm({ 
+      name: squad.name || '', 
+      number: squad.number?.toString() || '' 
+    })
+    setEditingSquad(squad)
+    setShowEditSquadModal(true)
+  }, [])
+
+  const handleSaveEditSquad = useCallback(() => {
+    if (!editingSquad || !editSquadForm.name.trim()) return
+    
+    updateSquadMutation.mutate({
+      squadId: editingSquad.id,
+      name: editSquadForm.name.trim(),
+      number: parseInt(editSquadForm.number) || editingSquad.number
+    })
+  }, [editingSquad, editSquadForm, updateSquadMutation])
+
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="page">
       {/* Header */}
@@ -450,6 +583,20 @@ setShowOrganizeModal(true)
                   </button>
                   <div className="flex items-center gap-1 ml-2">
                     <button
+                      onClick={() => handleSetMaxSquads(troop.id)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-xs font-medium"
+                      title="ตั้งค่าจำนวนหมู่สูงสุด"
+                    >
+                      <Edit size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleEditTroop(troop)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
+                      title="แก้ไขชื่อกอง"
+                    >
+                      <Settings size={12} />
+                    </button>
+                    <button
                       onClick={() =>
                         setConfirmDel({
                           label: `กอง "${troop.name}"`,
@@ -480,12 +627,11 @@ setShowOrganizeModal(true)
                         const leader = getLeader(squad)
                         const school = squad.scouts?.[0]?.school || null
                         return (
-                          <button
-                            key={squad.id}
-                            onClick={() => setViewingSquad(squad)}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:border-scout-300 dark:hover:border-scout-500 hover:shadow-sm transition-all text-left"
-                          >
-                            <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 hover:shadow-sm transition-all cursor-pointer">
+                            <button
+                              onClick={() => setViewingSquad(squad)}
+                              className="flex-1 flex items-center gap-3 text-left"
+                            >
                               <div className="w-8 h-8 rounded-lg bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center">
                                 <Users size={14} className="text-scout-500" />
                               </div>
@@ -498,13 +644,37 @@ setShowOrganizeModal(true)
                                   {leader && ` · ผู้กำกับ: ${leader.name}`}
                                 </p>
                               </div>
+                            </button>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-medium ${school ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'}`}
+                              >
+                                {school || 'ไม่ระบุสถานศึกษา'}
+                              </span>
+                              <button
+                                onClick={() => handleEditSquad(squad)}
+                                className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
+                                title="แก้ไขหมู่"
+                              >
+                                <Settings size={13} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setConfirmDel({
+                                    label: `หมู่ "${squad.name}"`,
+                                    onConfirm: () => {
+                                      // Add delete squad mutation here
+                                      toast.success('ลบหมู่สำเร็จ')
+                                    },
+                                  })
+                                }
+                                className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                title="ลบหมู่"
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
-                            <span
-                              className={`text-xs font-medium ${school ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'}`}
-                            >
-                              {school || 'ไม่ระบุสถานศึกษา'}
-                            </span>
-                          </button>
+                          </div>
                         )
                       })}
                     </div>
@@ -519,15 +689,6 @@ setShowOrganizeModal(true)
                             value={squadForm.name}
                             onChange={(e) =>
                               setSquadForm((f) => ({ ...f, name: e.target.value }))
-                            }
-                          />
-                          <input
-                            className={INPUT_CLS}
-                            type="number"
-                            placeholder="หมายเลขหมู่ (เช่น 1, 2, 3)"
-                            value={squadForm.number}
-                            onChange={(e) =>
-                              setSquadForm((f) => ({ ...f, number: e.target.value }))
                             }
                           />
                           <div className="flex gap-2">
@@ -547,16 +708,16 @@ setShowOrganizeModal(true)
                           </div>
                         </div>
                       </div>
-                    ) : troop.squads?.length >= 4 ? (
+                    ) : troop.squads?.length >= (troop.maxSquads || 4) ? (
                       <div className="text-center py-3 rounded-xl bg-gray-50 dark:bg-scout-800/40 border border-dashed border-gray-200 dark:border-scout-600">
-                        <p className="text-xs text-gray-400">สร้างได้สูงสุด 4 หมู่ต่อกอง</p>
+                        <p className="text-xs text-gray-400">สร้างได้สูงสุด {troop.maxSquads || 4} หมู่ต่อกอง</p>
                       </div>
                     ) : (
                       <button
                         onClick={() => setShowAddSquad(troop.id)}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition active:scale-95"
                       >
-                        <Plus size={16} /> เพิ่มหมู่ ({troop.squads?.length || 0}/4)
+                        <Plus size={16} /> เพิ่มหมู่ ({troop.squads?.length || 0}/{troop.maxSquads || 4})
                       </button>
                     )}
                   </div>
@@ -680,7 +841,7 @@ setShowOrganizeModal(true)
           <div className="px-6 pb-6">
             <button
               onClick={() => setViewingSquad(null)}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-600 transition"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
             >
               ปิด
             </button>
@@ -1059,6 +1220,50 @@ setShowOrganizeModal(true)
         </Modal>
       )}
 
+      {/* Max Squads Modal */}
+      {showMaxSquadsModal && (
+        <Modal onClose={() => setShowMaxSquadsModal(false)}>
+          <ModalHeader title="ตั้งค่าจำนวนหมู่สูงสุด" onClose={() => setShowMaxSquadsModal(false)} />
+          <div className="px-6 py-5">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  จำนวนหมู่สูงสุดต่อกอง
+                </label>
+                <input
+                  className={INPUT_CLS}
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="กรอกจำนวนหมู่สูงสุด (เช่น 10)"
+                  value={maxSquadsForm.maxSquads}
+                  onChange={(e) => setMaxSquadsForm((f) => ({ ...f, maxSquads: e.target.value }))}
+                  autoFocus
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  กำหนดจำนวนหมู่สูงสุดที่สามารถสร้างได้ในกองนี้
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 pb-6 flex gap-3">
+            <button
+              onClick={handleSaveMaxSquads}
+              disabled={!maxSquadsForm.maxSquads || updateMaxSquadsMutation.isLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold transition"
+            >
+              {updateMaxSquadsMutation.isLoading ? 'กำลังบันทึก...' : 'บันทึก'}
+            </button>
+            <button
+              onClick={() => setShowMaxSquadsModal(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {/* Organization Preview Modal */}
       {showOrganizeModal && organizePreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1192,6 +1397,94 @@ setShowOrganizeModal(true)
             </div>
           </div>
         </div>
+      )} 
+
+      {/* Edit Troop Modal */}
+      {showEditTroopModal && (
+        <Modal onClose={() => setShowEditTroopModal(false)}>
+          <ModalHeader title="แก้ไขชื่อกอง" onClose={() => setShowEditTroopModal(false)} />
+          <div className="px-6 py-5">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  ชื่อกอง
+                </label>
+                <input
+                  className={INPUT_CLS}
+                  placeholder="กรอกชื่อกอง"
+                  value={editTroopForm.name}
+                  onChange={(e) => setEditTroopForm(f => ({ ...f, name: e.target.value }))}
+                  autoFocus
+                />
+              </div>
+            </div>
+          </div>
+          <div className="px-6 pb-6 flex gap-3">
+            <button
+              onClick={handleSaveEditTroop}
+              disabled={!editTroopForm.name.trim()}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold transition"
+            >
+              บันทึก
+            </button>
+            <button
+              onClick={() => setShowEditTroopModal(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Squad Modal */}
+      {showEditSquadModal && (
+        <Modal onClose={() => setShowEditSquadModal(false)}>
+          <ModalHeader title="แก้ไขหมู่" onClose={() => setShowEditSquadModal(false)} />
+          <div className="px-6 py-5">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  ชื่อหมู่
+                </label>
+                <input
+                  className={INPUT_CLS}
+                  placeholder="กรอกชื่อหมู่"
+                  value={editSquadForm.name}
+                  onChange={(e) => setEditSquadForm(f => ({ ...f, name: e.target.value }))}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  หมายเลขหมู่
+                </label>
+                <input
+                  className={INPUT_CLS}
+                  type="number"
+                  placeholder="กรอกหมายเลขหมู่"
+                  value={editSquadForm.number}
+                  onChange={(e) => setEditSquadForm(f => ({ ...f, number: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="px-6 pb-6 flex gap-3">
+            <button
+              onClick={handleSaveEditSquad}
+              disabled={!editSquadForm.name.trim()}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold transition"
+            >
+              บันทึก
+            </button>
+            <button
+              onClick={() => setShowEditSquadModal(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )

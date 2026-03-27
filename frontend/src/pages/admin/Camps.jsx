@@ -1,25 +1,118 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, X, ChevronRight, Users, ArrowRight, Flag, Tent, Shield, School, MapPin, Eye, Search } from 'lucide-react'
+import { Plus, Trash2, X, ChevronRight, Users, ArrowRight, Flag, Tent, Shield, School, MapPin, Eye, Search, Settings, Edit } from 'lucide-react'
 
 export default function AdminCamps() {
-  const qc = useQueryClient()
-  const fileRef = useRef()
-  const [modal, setModal] = useState(null)
-  const [confirmDel, setConfirmDel] = useState(null)
-  const [expandedCamp, setExpandedCamp] = useState(null)
-  const [expandedTroop, setExpandedTroop] = useState(null)
-  const [expandedSquad, setExpandedSquad] = useState(null)
-  const [searchTerm, setSearchTerm] = useState('') // { label, onConfirm }
-  const [selectedSchool, setSelectedSchool] = useState('ALL') // สำหรับกรองตามโรงเรียน
+  try {
+    const qc = useQueryClient()
+    const fileRef = useRef()
+    const [modal, setModal] = useState(null)
+    console.log('AdminCamps component initialized')
+    const [confirmDel, setConfirmDel] = useState(null)
+    const [expandedCamp, setExpandedCamp] = useState(null)
+    const [expandedTroop, setExpandedTroop] = useState(null)
+    const [expandedSquad, setExpandedSquad] = useState(null)
+    const [searchTerm, setSearchTerm] = useState('') // { label, onConfirm }
+    const [selectedSchool, setSelectedSchool] = useState('ALL') // สำหรับกรองตามโรงเรียน
+    const [showMaxSquadsModal, setShowMaxSquadsModal] = useState(false)
+    const [maxSquadsForm, setMaxSquadsForm] = useState({ maxSquads: '4' })
+    const [troopMaxSquads, setTroopMaxSquads] = useState({})
 
-  const { data: camps = [] } = useQuery('camps-full', () => api.get('/camps'), { refetchOnWindowFocus: true })
-  const { data: allScouts = [] } = useQuery('all-scouts', () => api.get('/scouts'), { refetchOnWindowFocus: true })
+  const { data: camps = [], isLoading: campsLoading, error: campsError } = useQuery('camps-full', () => api.get('/camps'), { 
+    refetchOnWindowFocus: true,
+    onError: (error) => {
+      console.error('Camps API Error:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลค่ายได้');
+    }
+  })
+  const { data: allScouts = [], isLoading: scoutsLoading, error: scoutsError } = useQuery('all-scouts', () => api.get('/scouts'), { 
+    refetchOnWindowFocus: true,
+    onError: (error) => {
+      console.error('Scouts API Error:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลลูกเสือได้');
+    }
+  })
+
+  // Show error state
+  if (campsError || scoutsError) {
+    return (
+      <div className="page flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+            <X size={24} className="text-red-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">เกิดข้อผิดพลาด</h3>
+          <p className="text-sm text-gray-400">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading state
+  if (campsLoading || scoutsLoading) {
+    return (
+      <div className="page flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-scout-400 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-sm text-gray-400">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Additional safety check
+  if (!camps || !allScouts) {
+    return (
+      <div className="page flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+            <Settings size={24} className="text-amber-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">กำลังเริ่มต้นระบบ</h3>
+          <p className="text-sm text-gray-400">กรุณารอสักครู่...</p>
+        </div>
+      </div>
+    )
+  }
 
   const createCamp = useMutation(d => api.post('/camps', d), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); closeModal(); toast.success('สร้างค่ายพร้อมโครงสร้างสำเร็จ (1 กอง, 4 หมู่)') }
+  })
+  const createTroop = useMutation(d => {
+    // Find the camp to get current troops and auto-assign next number
+    const camp = camps.find(c => c.id === d.campId)
+    const currentTroops = camp?.troops || []
+    const nextNumber = Math.max(...currentTroops.map(t => t.number || 0), 0) + 1
+    
+    return api.post(`/camps/${d.campId}/troops`, { name: d.name, number: nextNumber })
+  }, {
+    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างกองพร้อม 4 หมู่สำเร็จ') }
+  })
+  const createSquad = useMutation(d => {
+    // Find the troop to get current squads and auto-assign next number
+    const troop = camps.flatMap(c => c.troops || []).find(t => t.id === d.troopId)
+    const currentSquads = troop?.squads || []
+    const maxSquads = troop?.maxSquads || 4
+    
+    // Check squad limit
+    if (currentSquads.length >= maxSquads) {
+      throw new Error(`ไม่สามารถสร้างหมู่ได้ เนื่องจากกองนี้มีหมู่ครบ ${maxSquads} หมู่แล้ว`)
+    }
+    
+    // Auto-assign next squad number
+    const nextNumber = Math.max(...currentSquads.map(s => s.number || 0), 0) + 1
+    
+    return api.post(`/camps/${d.campId}/troops/${d.troopId}/squads`, { name: d.name, number: nextNumber })
+  }, {
+    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างหมู่สำเร็จ') },
+    onError: (error) => {
+      toast.error(error.message || 'ไม่สามารถสร้างหมู่ได้')
+    }
+  })
+  const updateCamp = useMutation(d => api.patch(`/camps/${d.id}`, { name: d.name }), {
+    onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); closeModal(); toast.success('แก้ไขชื่อค่ายสำเร็จ') }
   })
   const deleteCamp = useMutation(id => api.delete(`/camps/${id}`), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); toast.success('ลบค่ายและกอง/หมู่ทั้งหมดสำเร็จ') }
@@ -30,6 +123,12 @@ export default function AdminCamps() {
   const deleteTroop = useMutation(({ campId, troopId }) => api.delete(`/camps/${campId}/troops/${troopId}`), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบกองและหมู่ทั้งหมดสำเร็จ') }
   })
+  const updateTroop = useMutation(d => api.patch(`/camps/${d.campId}/troops/${d.id}`, { name: d.name }), {
+    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('แก้ไขชื่อกองสำเร็จ') }
+  })
+  const updateSquad = useMutation(d => api.patch(`/camps/${d.campId}/squads/${d.id}`, { name: d.name }), {
+    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('แก้ไขชื่อหมู่สำเร็จ') }
+  })
   const moveScout = useMutation(({ scoutId, squadId }) => api.patch(`/camps/scouts/${scoutId}/move`, { squadId }), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('all-scouts'); closeModal(); toast.success('ย้ายลูกเสือสำเร็จ') }
   })
@@ -39,15 +138,39 @@ export default function AdminCamps() {
 
   function closeModal() { setModal(null) }
   function handleSubmit() {
-    const d = modal.formData
-    if (modal.type === 'camp') createCamp.mutate({ name: d.name })
-    else if (modal.type === 'add-scout-to-squad') createScout.mutate({ squadId: modal.squadId, firstName: d.firstName, lastName: d.lastName, scoutCode: d.scoutCode })
-    else if (modal.type === 'add-existing-scout-to-squad') moveScout.mutate({ scoutId: d.scoutId, squadId: modal.squadId })
-    else if (modal.type === 'move') setModal(m => ({ ...m, type: 'move-confirm' }))
+    try {
+      const d = modal.formData
+      console.log('Submitting modal:', modal.type, d)
+      
+      if (modal.type === 'camp') {
+        if (d.id) updateCamp.mutate(d)
+        else createCamp.mutate({ name: d.name })
+      }
+      else if (modal.type === 'troop') {
+        if (d.id) updateTroop.mutate(d)
+        else createTroop.mutate(d)
+      }
+      else if (modal.type === 'squad') {
+        if (d.id) updateSquad.mutate(d)
+        else createSquad.mutate(d)
+      }
+      else if (modal.type === 'add-scout-to-squad') createScout.mutate({ squadId: modal.squadId, firstName: d.firstName, lastName: d.lastName, scoutCode: d.scoutCode })
+      else if (modal.type === 'add-existing-scout-to-squad') moveScout.mutate({ scoutId: d.scoutId, squadId: modal.squadId })
+      else if (modal.type === 'move') setModal(m => ({ ...m, type: 'move-confirm' }))
+      else {
+        console.error('Unknown modal type:', modal.type)
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error)
+      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่')
+    }
   }
   function confirmMove() {
     moveScout.mutate({ scoutId: modal.scout.id, squadId: modal.formData.squadId || null })
   }
+
+  console.log('Camps data:', camps)
+  console.log('All scouts data:', allScouts)
 
   const allSquads = camps.flatMap(c => (
     (c.troops || []).flatMap(t => (
@@ -59,8 +182,15 @@ export default function AdminCamps() {
     if (a.troopName !== b.troopName) return a.troopName.localeCompare(b.troopName)
     return a.number - b.number
   });
+  console.log('All squads:', allSquads)
   const unassigned = allScouts.filter(s => !s.squadId)
   const assigned = allScouts.filter(s => s.squadId)
+
+  // Add debugging
+  console.log('Camps data:', camps);
+  console.log('Scouts data:', allScouts);
+  console.log('Loading states:', { campsLoading, scoutsLoading });
+  console.log('Errors:', { campsError, scoutsError });
 
   // ฟังก์ชันกรองลูกเสือตามการค้นหา
   const filteredScouts = allScouts.filter(scout => {
@@ -126,6 +256,39 @@ export default function AdminCamps() {
     }
   }
 
+  const handleSetMaxSquads = useCallback((troop, campId) => {
+    setMaxSquadsForm({ maxSquads: String(troop.maxSquads || 4) })
+    setShowMaxSquadsModal(true)
+    setTroopMaxSquads({ troopId: troop.id, campId })
+  }, [])
+
+  const handleSaveMaxSquads = useCallback(() => {
+    if (!troopMaxSquads.troopId || !troopMaxSquads.campId || !maxSquadsForm.maxSquads) return
+    
+    const camp = camps.find(c => c.id === troopMaxSquads.campId)
+    const troop = camp?.troops?.find(t => t.id === troopMaxSquads.troopId)
+    const currentSquadCount = troop?.squads?.length || 0
+    const newMaxSquads = parseInt(maxSquadsForm.maxSquads)
+    
+    // ตรวจสอบว่าจำนวนหมู่สูงสุดใหม่ไม่น้อยกว่าจำนวนหมู่ปัจจุบัน
+    if (newMaxSquads < currentSquadCount) {
+      toast.error(`ไม่สามารถตั้งจำนวนหมู่สูงสุดน้อยกว่าจำนวนหมู่ปัจจุบันได้ (ปัจจุบันมี ${currentSquadCount} หมู่)`)
+      return
+    }
+    
+    api.patch(`/camps/${troopMaxSquads.campId}/troops/${troopMaxSquads.troopId}/max-squads`, { maxSquads: newMaxSquads })
+      .then(() => {
+        qc.invalidateQueries('camps-full')
+        setShowMaxSquadsModal(false)
+        setMaxSquadsForm({ maxSquads: '4' })
+        setTroopMaxSquads({})
+        toast.success('ตั้งค่าจำนวนหมู่สูงสุดสำเร็จ')
+      })
+      .catch(err => {
+        toast.error(err?.response?.data?.message || 'ตั้งค่าจำนวนหมู่สูงสุดไม่สำเร็จ กรุณาลองใหม่')
+      })
+  }, [troopMaxSquads, maxSquadsForm, camps, qc])
+
   return (
     <div className="page pb-24">
       {/* Header */}
@@ -156,16 +319,28 @@ export default function AdminCamps() {
                     <p className="font-semibold text-scout-900 dark:text-white">{camp.name}</p>
                     <p className="text-xs text-gray-400">{(camp.troops || []).length} กอง · {totalScouts} คน</p>
                   </div>
-                  <ChevronRight size={16} className="text-gray-400 transition-transform duration-200"
-                    style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                 </button>
                 <button onClick={() => openDetailsModal('camp', camp)}
-                  className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all">
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
                   <Eye size={15} />
+                </button>
+                <button onClick={() => setModal({ type: 'camp', formData: { name: camp.name, id: camp.id } })}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">
+                  <Settings size={15} />
                 </button>
                 <button onClick={() => setConfirmDel({ label: `ค่าย "${camp.name}"`, onConfirm: () => deleteCamp.mutate(camp.id) })}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
                   <Trash2 size={14} />
+                </button>
+                <button onClick={() => setModal({ type: 'troop', formData: { name: '', campId: camp.id } })}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
+                  title="เพิ่มกอง">
+                  <Plus size={14} />
+                </button>
+                <button onClick={() => setExpandedCamp(isOpen ? null : camp.id)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
+                  <ChevronRight size={16} className="transition-transform duration-200"
+                    style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                 </button>
               </div>
 
@@ -185,18 +360,35 @@ export default function AdminCamps() {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-scout-900 dark:text-white">{troop.name}</p>
-                              <p className="text-xs text-gray-400">{(troop.squads || []).length}/4 หมู่</p>
+                              <p className="text-xs text-gray-400">{(troop.squads || []).length}/{troop.maxSquads || 4} หมู่</p>
                             </div>
-                            <ChevronRight size={13} className="text-gray-400 ml-auto transition-transform duration-200"
-                              style={{ transform: troopOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                           </button>
                           <button onClick={() => openDetailsModal('troop', troop)}
-                            className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all">
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
                             <Eye size={13} />
+                          </button>
+                          <button onClick={() => handleSetMaxSquads(troop, camp.id)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                            title="ตั้งค่าจำนวนหมู่สูงสุด">
+                            <Edit size={12} />
+                          </button>
+                          <button onClick={() => setModal({ type: 'troop', formData: { name: troop.name, id: troop.id, campId: camp.id } })}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">
+                            <Settings size={13} />
                           </button>
                           <button onClick={() => setConfirmDel({ label: `กอง "${troop.name}"`, onConfirm: () => deleteTroop.mutate({ campId: camp.id, troopId: troop.id }) })}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
                             <Trash2 size={13} />
+                          </button>
+                          <button onClick={() => setModal({ type: 'squad', formData: { name: '', troopId: troop.id } })}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
+                            title="เพิ่มหมู่">
+                            <Plus size={13} />
+                          </button>
+                          <button onClick={() => setExpandedTroop(troopOpen ? null : troop.id)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
+                            <ChevronRight size={13} className="transition-transform duration-200"
+                              style={{ transform: troopOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                           </button>
                         </div>
                         {/* Squads */}
@@ -218,12 +410,23 @@ export default function AdminCamps() {
                                       <span className="text-xs bg-gray-100 dark:bg-scout-800 text-gray-500 dark:text-scout-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                                         <Users size={10} /> {squadScouts.length}
                                       </span>
-                                      <ChevronRight size={12} className="text-gray-400 ml-auto transition-transform duration-200"
-                                        style={{ transform: squadOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                                     </button>
                                     <button onClick={() => openDetailsModal('squad', squad)}
-                                      className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all">
+                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
                                       <Eye size={11} />
+                                    </button>
+                                    <button onClick={() => setModal({ type: 'squad', formData: { name: squad.name, id: squad.id, troopId: troop.id } })}
+                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">
+                                      <Settings size={11} />
+                                    </button>
+                                    <button onClick={() => setConfirmDel({ label: `หมู่ "${squad.name}"`, onConfirm: () => deleteSquad.mutate({ campId: camp.id, squadId: squad.id }) })}
+                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                                      <Trash2 size={11} />
+                                    </button>
+                                    <button onClick={() => setExpandedSquad(squadOpen ? null : squad.id)}
+                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
+                                      <ChevronRight size={12} className="transition-transform duration-200"
+                                        style={{ transform: squadOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
                                     </button>
                                   </div>
 
@@ -378,7 +581,8 @@ export default function AdminCamps() {
                   : modal.type === 'view-camp-details' ? `รายละเอียดค่าย "${modal.camp.name}"`
                   : modal.type === 'view-troop-details' ? `รายละเอียดกอง "${modal.troop.name}"`
                   : modal.type === 'view-squad-details' ? `รายละเอียดหมู่ "${modal.squad.name}"`
-                  : `ย้าย "${modal.scout?.firstName}" ไปหมู่`}
+                  : modal.type === 'squad' ? 'เพิ่มหมู่'
+                  : `เพิ่มกอง`}
               </h3>
               <button onClick={closeModal} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"><X size={20} /></button>
             </div>
@@ -553,7 +757,7 @@ export default function AdminCamps() {
                 <>
                   <input className="input" placeholder="ชื่อ" autoFocus value={modal.formData.name}
                     onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, name: e.target.value } }))} />
-                  {modal.type !== 'camp' && (
+                  {modal.type !== 'camp' && modal.type !== 'troop' && modal.type !== 'squad' && (
                     <input className="input" type="number" placeholder="หมายเลข (1, 2, 3...)" value={modal.formData.number}
                       onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, number: e.target.value } }))} />
                   )}
@@ -614,10 +818,80 @@ export default function AdminCamps() {
         </div>
       )}
 
+      {/* Max Squads Modal */}
+      {showMaxSquadsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowMaxSquadsModal(false) }}>
+          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-md shadow-2xl"
+            style={{ animation: 'slideUp 0.25s ease' }}>
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-200 dark:border-scout-700">
+              <h3 className="font-semibold text-scout-900 dark:text-white text-lg">
+                ตั้งค่าจำนวนหมู่สูงสุด
+              </h3>
+              <button onClick={() => setShowMaxSquadsModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-scout-600 text-gray-400 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    จำนวนหมู่สูงสุดต่อกอง
+                  </label>
+                  <input
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 bg-gray-50 dark:bg-scout-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
+                    type="number"
+                    min="1"
+                    max="20"
+                    placeholder="กรอกจำนวนหมู่สูงสุด (เช่น 10)"
+                    value={maxSquadsForm.maxSquads}
+                    onChange={(e) => setMaxSquadsForm((f) => ({ ...f, maxSquads: e.target.value }))}
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    กำหนดจำนวนหมู่สูงสุดที่สามารถสร้างได้ในกองนี้
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={handleSaveMaxSquads}
+                disabled={!maxSquadsForm.maxSquads}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold transition"
+              >
+                บันทึก
+              </button>
+              <button
+                onClick={() => setShowMaxSquadsModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
       `}</style>
     </div>
   )
+  } catch (error) {
+    console.error('AdminCamps component error:', error)
+    return (
+      <div className="page flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+            <X size={24} className="text-red-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">เกิดข้อผิดพลาด</h3>
+          <p className="text-sm text-gray-400">ไม่สามารถโหลดหน้าจัดการค่ายได้ กรุณาลองใหม่</p>
+        </div>
+      </div>
+    )
+  }
 }

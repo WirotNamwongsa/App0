@@ -52,6 +52,8 @@ model Troop {
 
   number    Int
 
+  maxSquads Int      @default(4)
+
   campId    String
 
   createdAt DateTime @default(now())
@@ -75,6 +77,8 @@ model Squad {
   name            String
 
   number          Int
+
+  gender          String?
 
   troopId         String
 

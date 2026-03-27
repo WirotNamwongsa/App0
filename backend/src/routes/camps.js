@@ -73,11 +73,12 @@ router.get('/my', requireRole('ADMIN', 'CAMP_MANAGER', 'LEADER', 'TROOP_LEADER')
         include: {
 
           squads: {
-            select: {  // ✅ select อยู่นอก include
+            select: {  
               id: true,
               name: true,
               number: true,
               troopId: true,
+              gender: true,
               leaders: { select: { id: true, name: true } },
               scouts: { select: { school: true }, take: 1 },
               _count: { select: { scouts: true } }
@@ -250,6 +251,32 @@ router.post('/:campId/troops/:troopId/squads', requireRole('ADMIN', 'CAMP_MANAGE
 
 
 
+// PATCH /api/camps/:campId
+
+router.patch('/:campId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+
+  const { name } = req.body
+
+
+
+  const camp = await prisma.camp.update({
+
+    where: { id: req.params.campId },
+
+    data: { name }
+
+  })
+
+
+
+  await logAudit({ userId: req.user.id, action: 'UPDATE_CAMP', target: camp.id, after: camp })
+
+  res.json(camp)
+
+})
+
+
+
 // PATCH /api/camps/:campId/squads/:squadId
 
 router.patch('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
@@ -277,6 +304,54 @@ router.patch('/:campId/squads/:squadId', requireRole('ADMIN', 'CAMP_MANAGER'), a
   await logAudit({ userId: req.user.id, action: 'UPDATE_SQUAD', target: squad.id, after: squad })
 
   res.json(squad)
+
+})
+
+
+
+// PATCH /api/camps/:campId/troops/:troopId
+
+router.patch('/:campId/troops/:troopId', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+
+  const { name } = req.body
+
+
+  const troop = await prisma.troop.update({
+
+    where: { id: req.params.troopId },
+
+    data: { name }
+
+  })
+
+
+  await logAudit({ userId: req.user.id, action: 'UPDATE_TROOP', target: troop.id, after: troop })
+
+  res.json(troop)
+
+})
+
+
+
+// PATCH /api/camps/:campId/troops/:troopId/max-squads
+
+router.patch('/:campId/troops/:troopId/max-squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+
+  const { maxSquads } = req.body
+
+
+  const troop = await prisma.troop.update({
+
+    where: { id: req.params.troopId },
+
+    data: { maxSquads: parseInt(maxSquads) }
+
+  })
+
+
+  await logAudit({ userId: req.user.id, action: 'UPDATE_TROOP_MAX_SQUADS', target: troop.id, after: troop })
+
+  res.json(troop)
 
 })
 
