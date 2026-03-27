@@ -272,4 +272,94 @@ const getReport = async (req, res, next) => {
   }
 };
 
-module.exports = { getDashboard, getStructure, createTroop, createPatrol, getPatrol, getSquad, addScout, moveScout, removeScout, getSchedule, createSchedule, getReport };
+// POST /api/camp/organize-troops — จัดระเบียบกองและหมู่อัตโนมัติ
+const organizeTroops = async (req, res, next) => {
+  try {
+    const campId = getCampId(req);
+    const { troops } = req.body;
+
+    // ตรวจสอบข้อมูลที่ส่งมา
+    if (!troops || !Array.isArray(troops)) {
+      return res.status(400).json({ error: 'ข้อมูลกองไม่ถูกต้อง' });
+    }
+
+    // เริ่ม transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. เก็บข้อมูล scoutIds ของแต่ละ squad ก่อนลบ
+      const existingSquads = await tx.squad.findMany({
+        where: { troop: { campId } },
+        include: { scouts: { select: { id: true } } }
+      });
+
+      const squadToScouts = {};
+      existingSquads.forEach(squad => {
+        squadToScouts[squad.id] = squad.scouts.map(s => s.id);
+      });
+
+      // 2. ลบ squad และ troop เดิมทั้งหมด
+      await tx.squad.deleteMany({
+        where: { troop: { campId } }
+      });
+      await tx.troop.deleteMany({
+        where: { campId }
+      });
+
+      // 3. สร้าง troop และ squad ใหม่ตาม payload
+      const createdTroops = [];
+      for (const troopData of troops) {
+        const createdTroop = await tx.troop.create({
+          data: {
+            name: `กอง ${troopData.number}`,
+            number: troopData.number,
+            campId
+          }
+        });
+
+        const createdSquads = [];
+        for (const squadData of troopData.squads) {
+          const createdSquad = await tx.squad.create({
+            data: {
+              name: squadData.name,
+              number: squadData.number || parseInt(squadData.name.match(/\d+/)?.[0] || 1),
+              gender: squadData.gender,
+              troopId: createdTroop.id
+            }
+          });
+
+          // 4. ย้าย scout เข้า squad ใหม่ (ถ้ามีข้อมูลเดิม)
+          const oldScoutIds = squadToScouts[squadData.id];
+          if (oldScoutIds && oldScoutIds.length > 0) {
+            await tx.scout.updateMany({
+              where: { id: { in: oldScoutIds } },
+              data: { squadId: createdSquad.id }
+            });
+          }
+
+          createdSquads.push(createdSquad);
+        }
+
+        createdTroops.push({
+          ...createdTroop,
+          squads: createdSquads
+        });
+      }
+
+      return createdTroops;
+    });
+
+    await createAuditLog({
+      accountId: req.user.id,
+      action: 'ORGANIZE',
+      entity: 'Troops',
+      newValue: { troopsCount: result.length },
+      ipAddress: req.ip
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error organizing troops:', err);
+    next(err);
+  }
+};
+
+module.exports = { getDashboard, getStructure, createTroop, createPatrol, getPatrol, getSquad, addScout, moveScout, removeScout, getSchedule, createSchedule, getReport, organizeTroops };

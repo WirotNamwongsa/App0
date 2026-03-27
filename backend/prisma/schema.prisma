@@ -1,180 +1,357 @@
 generator client {
+
   provider      = "prisma-client-js"
+
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+
 }
+
+
 
 datasource db {
+
   provider = "postgresql"
+
   url      = env("DATABASE_URL")
+
 }
+
+
 
 // ============== MODELS ==============
+
 model Camp {
+
   id            String   @id @default(uuid())
+
   name          String
+
   createdAt     DateTime @default(now())
+
   updatedAt     DateTime @updatedAt
 
+
+
   troops        Troop[]
+
   users         User[]
+
   schedules     Schedule[]
+
   activityGroups ActivityGroup[]
+
 }
+
+
 
 model Troop {
+
   id        String   @id @default(uuid())
+
   name      String
+
   number    Int
+
   campId    String
+
   createdAt DateTime @default(now())
+
   updatedAt DateTime @updatedAt
 
+
+
   camp      Camp     @relation(fields: [campId], references: [id])
+
   squads    Squad[]
+
 }
+
+
 
 model Squad {
+
   id              String   @id @default(uuid())
+
   name            String
+
   number          Int
-  gender          String?
+
   troopId         String
+
   activityGroupId String?
+
   createdAt       DateTime @default(now())
+
   updatedAt       DateTime @updatedAt
 
+
+
   troop           Troop    @relation(fields: [troopId], references: [id])
+
   leaders         User[]   @relation("SquadLeaders")   // ✅ เปลี่ยนเป็น many-to-many
+
   scouts          Scout[]
+
   schedules       Schedule[]
+
   activityGroup   ActivityGroup? @relation("SquadActivityGroup", fields: [activityGroupId], references: [id])
+
 }
+
+
 
 model User {
+
   id                    String   @id @default(uuid())
+
   username              String   @unique
+
   password              String
+
   role                  String
+
   name                  String
+
   firstName             String?
+
   lastName              String?
+
   phone                 String?
+
   email                 String?
+
   school                String?
+
   prefix                String?
+
   province              String?
+
   allergies             String?
+
   congenitalDisease     String?
+
   campId                String?
+
   createdAt             DateTime @default(now())
+
   updatedAt             DateTime @updatedAt
 
+
+
   leadingSquads         Squad[]        @relation("SquadLeaders")  // ✅ เปลี่ยนเป็น many-to-many
+
   staffActivity         Activity?      @relation("StaffActivity")
+
   managingActivityGroups ActivityGroup[] @relation("ActivityGroupManager")
+
   auditLogs             AuditLog[]
+
   scoutAccount          Scout?         @relation("ScoutUser")
+
   camp                  Camp?          @relation(fields: [campId], references: [id])
+
 }
+
+
 
 model Scout {
+
   id                String   @id @default(uuid())
+
   scoutCode         String   @unique
+
   firstName         String
+
   lastName          String
+
   gender            String?
+
   nickname          String?
+
   birthDate         DateTime?
+
   school            String?
+
   province          String?
+
   phone             String?
+
   email             String?
+
   allergies         String?
+
   congenitalDisease String?
+
   squadId           String?
+
   userId            String?  @unique
+
   qrData            String?
+
   createdAt         DateTime @default(now())
+
   updatedAt         DateTime @updatedAt
 
+
+
   squad             Squad?   @relation(fields: [squadId], references: [id])
+
   user              User?    @relation("ScoutUser", fields: [userId], references: [id])
+
   attendances       Attendance[]
+
 }
+
+
 
 model Activity {
+
   id          String       @id @default(uuid())
+
   name        String
+
   type        String
+
   description String?
+
   staffId     String?      @unique
+
   maxScans    Int?
+
   createdAt   DateTime     @default(now())
+
   updatedAt   DateTime     @updatedAt
 
+
+
   staff       User?        @relation("StaffActivity", fields: [staffId], references: [id])
+
   attendances Attendance[]
+
   schedules   Schedule[]
+
 }
+
+
 
 model ActivityGroup {
+
   id          String   @id @default(uuid())
+
   name        String
+
   description String?
+
   campId      String
+
   managerId   String?
+
   maxScouts   Int?
+
   isActive    Boolean  @default(true)
+
   createdAt   DateTime @default(now())
+
   updatedAt   DateTime @updatedAt
 
+
+
   camp        Camp     @relation(fields: [campId], references: [id])
+
   manager     User?    @relation("ActivityGroupManager", fields: [managerId], references: [id])
+
   squads      Squad[]  @relation("SquadActivityGroup")
+
   schedules   Schedule[]
+
 }
+
+
 
 model Schedule {
+
   id              String   @id @default(uuid())
+
   activityId      String
+
   campId          String
+
   squadId         String?
+
   activityGroupId String?
+
   date            DateTime
+
   slot            String
+
   createdAt       DateTime @default(now())
 
+
+
   activity        Activity      @relation(fields: [activityId], references: [id])
+
   camp            Camp          @relation(fields: [campId], references: [id])
+
   squad           Squad?        @relation(fields: [squadId], references: [id])
+
   activityGroup   ActivityGroup? @relation(fields: [activityGroupId], references: [id])
 
+
+
   @@unique([activityId, campId, squadId, date, slot])
+
 }
+
+
 
 model Attendance {
+
   id            String   @id @default(uuid())
+
   scoutId       String
+
   activityId    String
+
   result        String   @default("PASS")
+
   outOfSchedule Boolean  @default(false)
+
   scannedAt     DateTime @default(now())
+
   scannedBy     String?
 
+
+
   scout         Scout    @relation(fields: [scoutId], references: [id])
+
   activity      Activity @relation(fields: [activityId], references: [id])
 
+
+
   @@unique([scoutId, activityId])
+
 }
 
+
+
 model AuditLog {
+
   id        String   @id @default(uuid())
+
   userId    String
+
   action    String
+
   target    String?
+
   before    String?
+
   after     String?
+
   createdAt DateTime @default(now())
 
+
+
   user      User     @relation(fields: [userId], references: [id])
+
 }

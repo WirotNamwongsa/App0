@@ -17,5 +17,6 @@ router.delete('/scouts/:id', c.removeScout);
 router.get('/schedule', c.getSchedule);
 router.post('/schedule', c.createSchedule);
 router.get('/report', c.getReport);
+router.post('/organize-troops', c.organizeTroops);
 
 module.exports = router;

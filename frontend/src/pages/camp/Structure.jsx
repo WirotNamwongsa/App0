@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import PageHeader from '../../components/PageHeader'
@@ -237,7 +237,10 @@ export default function CampStructure() {
 
   // ── Organization Logic ─────────────────────────────────────────────────────
   const handleAutoOrganize = useCallback(() => {
+    console.log('🔍 Button clicked!')
     const squads = allSquads
+    console.log('🔍 allSquads:', squads)
+    
     if (squads.length === 0) {
       toast.error('ไม่มีหมู่ในค่าย')
       return
@@ -246,6 +249,7 @@ export default function CampStructure() {
     // แยกหมู่ตามเพศ
    const getSquadGender = (squad) => {
   const scoutsInSquad = scouts?.filter(s => s.squadId === squad.id)
+  console.log('🔍 Squad:', squad.name, 'Scouts in squad:', scoutsInSquad)
   if (scoutsInSquad.length === 0) return 'ไม่ระบุ'
   return scoutsInSquad[0].gender || 'ไม่ระบุ'
 }
@@ -256,6 +260,7 @@ const squadsByGender = squads.reduce((acc, squad) => {
   acc[gender].push(squad)
   return acc
 }, {})
+console.log('🔍 Squads by gender:', squadsByGender)
  
 // จัดหมู่เข้ากอง กองละ 4 หมู่
 const organizedTroops = []
@@ -274,6 +279,8 @@ Object.entries(squadsByGender).forEach(([gender, genderSquads]) => {
     })
   }
 })
+ 
+console.log('🔍 Organized troops:', organizedTroops)
  
 setOrganizePreview(organizedTroops)
 setShowOrganizeModal(true)
@@ -471,7 +478,7 @@ setShowOrganizeModal(true)
                     <div className="space-y-2">
                       {troop.squads?.map((squad) => {
                         const leader = getLeader(squad)
-                        const school = squad.school || null
+                        const school = squad.scouts?.[0]?.school || null
                         return (
                           <button
                             key={squad.id}
