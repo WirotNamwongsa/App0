@@ -705,18 +705,44 @@ router.post('/:campId/organize-squads', requireRole('ADMIN', 'CAMP_MANAGER'), as
 
     const troops = await prisma.troop.findMany({
       where: { campId },
-      include: { squads: true },
+      include: {
+        squads: {
+          include: {
+            _count: { select: { scouts: true } }
+          }
+        }
+      },
       orderBy: { number: 'asc' }
     })
 
+    // ✅ รวม squads ว่างทั้งหมด (ไม่มีลูกเสือ) เรียงตามลำดับ
+    const emptySquads = troops
+      .flatMap(t => t.squads.map(sq => ({ ...sq, troop: t })))
+      .filter(sq => sq._count.scouts === 0)
+
     for (const squadData of newSquads) {
-      // หา troop ที่ยังมีที่ว่าง
+      // ✅ ลองใช้หมู่ว่างที่มีอยู่ก่อน
+      if (emptySquads.length > 0) {
+        const emptySquad = emptySquads.shift() // เอาหมู่ว่างออกมาใช้
+
+        if (squadData.scoutIds?.length > 0) {
+          await prisma.scout.updateMany({
+            where: { id: { in: squadData.scoutIds } },
+            data: { squadId: emptySquad.id }
+          })
+        }
+
+        createdSquads.push(emptySquad)
+        continue // ไม่ต้องสร้างหมู่ใหม่
+      }
+
+      // ✅ ถ้าไม่มีหมู่ว่าง → หา troop ที่ยังมีที่ว่าง
       let availableTroop = troops.find(t => {
         const max = t.maxSquads || 4
         return t.squads.length < max
       })
 
-      // ถ้าทุกกองเต็ม → สร้างกองใหม่อัตโนมัติ
+      // ถ้าทุกกองเต็ม → สร้างกองใหม่
       if (!availableTroop) {
         const nextTroopNumber = Math.max(...troops.map(t => t.number || 0), 0) + 1
         availableTroop = await prisma.troop.create({
@@ -724,7 +750,7 @@ router.post('/:campId/organize-squads', requireRole('ADMIN', 'CAMP_MANAGER'), as
             campId,
             name: `กอง ${nextTroopNumber}`,
             number: nextTroopNumber,
-             maxSquads: newSquads.length
+            maxSquads: newSquads.length
           }
         })
         availableTroop.squads = []

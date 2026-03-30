@@ -69,8 +69,18 @@ function formatDate(iso) {
 // ── DiffView ──────────────────────────────────────────────────────────────────
 function DiffView({ before, after, action }) {
   let b = {}, a = {}
-  try { b = JSON.parse(before) } catch {}
-  try { a = JSON.parse(after) } catch {}
+    try { const parsed = JSON.parse(before); b = parsed && typeof parsed === 'object' ? parsed : {} } catch {}
+  try { const parsed = JSON.parse(after);  a = parsed && typeof parsed === 'object' ? parsed : {} } catch {}
+
+  // fields ที่ไม่ต้องการแสดง
+  const SKIP_FIELDS = ['updatedAt', 'createdAt', 'qrData', 'id', 'createdSquads', 'squad', 'user', 'troop', 'camp']
+
+  // format value ให้ปลอดภัย
+  const formatVal = (v) => {
+    if (v === null || v === undefined) return '-'
+    if (typeof v === 'object') return JSON.stringify(v)
+    return String(v)
+  }
 
   if (action === 'MOVE_SCOUT') {
     return (
@@ -84,8 +94,12 @@ function DiffView({ before, after, action }) {
   }
 
   const changed = Object.keys({ ...b, ...a }).filter(k => {
-    if (['updatedAt', 'createdAt', 'qrData', 'id'].includes(k)) return false
-    return JSON.stringify(b[k]) !== JSON.stringify(a[k])
+    if (SKIP_FIELDS.includes(k)) return false
+    try {
+      return JSON.stringify(b[k]) !== JSON.stringify(a[k])
+    } catch {
+      return false
+    }
   })
 
   if (changed.length === 0) return <p className="text-xs text-gray-400 mt-2">ไม่มีการเปลี่ยนแปลง</p>
@@ -95,9 +109,9 @@ function DiffView({ before, after, action }) {
       {changed.map(k => (
         <div key={k} className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-gray-400 w-20 flex-shrink-0">{fieldLabel[k] || k}</span>
-          <span className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 px-2 py-0.5 rounded-lg line-through">{String(b[k] ?? '-')}</span>
+          <span className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 px-2 py-0.5 rounded-lg line-through">{formatVal(b[k])}</span>
           <span className="text-gray-300 dark:text-gray-600 text-xs">→</span>
-          <span className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 px-2 py-0.5 rounded-lg font-medium">{String(a[k] ?? '-')}</span>
+          <span className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 px-2 py-0.5 rounded-lg font-medium">{formatVal(a[k])}</span>
         </div>
       ))}
     </div>
