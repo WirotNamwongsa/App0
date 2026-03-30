@@ -1,127 +1,152 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, X, ChevronRight, Users, ArrowRight, Flag, Tent, Shield, School, MapPin, Eye, Search, Settings, Edit } from 'lucide-react'
+import {
+  Plus, Trash2, X, ChevronRight, Users, ArrowRight, Flag, Tent,
+  Shield, School, Eye, Search, Hash, Pencil, MoreVertical,
+  UserPlus, AlertCircle, CheckCircle2
+} from 'lucide-react'
 
+// ── Dropdown Menu ──────────────────────────────────────────────────────────────
+function DropdownMenu({ items, align = 'right' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef()
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative" onClick={e => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all"
+      >
+        <MoreVertical size={15} />
+      </button>
+      {open && (
+        <div
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1 z-50 min-w-[160px] bg-white dark:bg-scout-900 border border-gray-100 dark:border-scout-700 rounded-xl shadow-xl overflow-hidden`}
+          style={{ animation: 'dropIn 0.12s ease' }}
+        >
+          {items.map((item, i) =>
+            item.divider ? (
+              <div key={i} className="h-px bg-gray-100 dark:bg-scout-700 my-1" />
+            ) : (
+              <button
+                key={i}
+                onClick={() => { item.onClick(); setOpen(false) }}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors text-left
+                  ${item.danger
+                    ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-scout-800'
+                  }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Icon Button ────────────────────────────────────────────────────────────────
+function IconBtn({ icon, onClick, title, variant = 'default', size = 8 }) {
+  const variants = {
+    default: 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-scout-700',
+    blue: 'text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20',
+    green: 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
+  }
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onClick?.() }}
+      title={title}
+      className={`w-${size} h-${size} rounded-lg flex items-center justify-center transition-all ${variants[variant]}`}
+    >
+      {icon}
+    </button>
+  )
+}
+
+// ── Squad capacity bar ─────────────────────────────────────────────────────────
+function CapacityBar({ current, max = 8 }) {
+  const pct = Math.min((current / max) * 100, 100)
+  const color = current >= max ? 'bg-emerald-500' : current >= max * 0.75 ? 'bg-amber-400' : 'bg-scout-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-scout-700 overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`text-xs font-semibold tabular-nums ${current >= max ? 'text-emerald-500' : 'text-gray-400'}`}>
+        {current}/{max}
+      </span>
+    </div>
+  )
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 export default function AdminCamps() {
-  try {
-    const qc = useQueryClient()
-    const fileRef = useRef()
-    const [modal, setModal] = useState(null)
-    console.log('AdminCamps component initialized')
-    const [confirmDel, setConfirmDel] = useState(null)
-    const [expandedCamp, setExpandedCamp] = useState(null)
-    const [expandedTroop, setExpandedTroop] = useState(null)
-    const [expandedSquad, setExpandedSquad] = useState(null)
-    const [searchTerm, setSearchTerm] = useState('') // { label, onConfirm }
-    const [selectedSchool, setSelectedSchool] = useState('ALL') // สำหรับกรองตามโรงเรียน
-    const [showMaxSquadsModal, setShowMaxSquadsModal] = useState(false)
-    const [maxSquadsForm, setMaxSquadsForm] = useState({ maxSquads: '4' })
-    const [troopMaxSquads, setTroopMaxSquads] = useState({})
+  const qc = useQueryClient()
+  const [modal, setModal] = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null)
+  const [expandedCamp, setExpandedCamp] = useState(null)
+  const [expandedTroop, setExpandedTroop] = useState(null)
+  const [expandedSquad, setExpandedSquad] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSchool, setSelectedSchool] = useState('ALL')
+  const [showMaxSquadsModal, setShowMaxSquadsModal] = useState(false)
+  const [maxSquadsForm, setMaxSquadsForm] = useState({ maxSquads: '4' })
+  const [troopMaxSquads, setTroopMaxSquads] = useState({})
 
-  const { data: camps = [], isLoading: campsLoading, error: campsError } = useQuery('camps-full', () => api.get('/camps'), { 
-    refetchOnWindowFocus: true,
-    onError: (error) => {
-      console.error('Camps API Error:', error);
-      toast.error('ไม่สามารถโหลดข้อมูลค่ายได้');
-    }
-  })
-  const { data: allScouts = [], isLoading: scoutsLoading, error: scoutsError } = useQuery('all-scouts', () => api.get('/scouts'), { 
-    refetchOnWindowFocus: true,
-    onError: (error) => {
-      console.error('Scouts API Error:', error);
-      toast.error('ไม่สามารถโหลดข้อมูลลูกเสือได้');
-    }
-  })
+  // ── Queries ──────────────────────────────────────────────────────────────────
+  const { data: camps = [], isLoading: campsLoading, error: campsError } = useQuery(
+    'camps-full', () => api.get('/camps'),
+    { refetchOnWindowFocus: true, onError: () => toast.error('ไม่สามารถโหลดข้อมูลค่ายได้') }
+  )
+  const { data: allScouts = [], isLoading: scoutsLoading, error: scoutsError } = useQuery(
+    'all-scouts', () => api.get('/scouts'),
+    { refetchOnWindowFocus: true, onError: () => toast.error('ไม่สามารถโหลดข้อมูลลูกเสือได้') }
+  )
 
-  // Show error state
-  if (campsError || scoutsError) {
-    return (
-      <div className="page flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-            <X size={24} className="text-red-500" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">เกิดข้อผิดพลาด</h3>
-          <p className="text-sm text-gray-400">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Show loading state
-  if (campsLoading || scoutsLoading) {
-    return (
-      <div className="page flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-scout-400 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-sm text-gray-400">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Additional safety check
-  if (!camps || !allScouts) {
-    return (
-      <div className="page flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
-            <Settings size={24} className="text-amber-500" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">กำลังเริ่มต้นระบบ</h3>
-          <p className="text-sm text-gray-400">กรุณารอสักครู่...</p>
-        </div>
-      </div>
-    )
-  }
-
+  // ── Mutations ────────────────────────────────────────────────────────────────
   const createCamp = useMutation(d => api.post('/camps', d), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); closeModal(); toast.success('สร้างค่ายพร้อมโครงสร้างสำเร็จ (1 กอง, 4 หมู่)') }
+    onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); closeModal(); toast.success('สร้างค่ายสำเร็จ') }
   })
   const createTroop = useMutation(d => {
-    // Find the camp to get current troops and auto-assign next number
     const camp = camps.find(c => c.id === d.campId)
-    const currentTroops = camp?.troops || []
-    const nextNumber = Math.max(...currentTroops.map(t => t.number || 0), 0) + 1
-    
+    const nextNumber = Math.max(...(camp?.troops || []).map(t => t.number || 0), 0) + 1
     return api.post(`/camps/${d.campId}/troops`, { name: d.name, number: nextNumber })
-  }, {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างกองพร้อม 4 หมู่สำเร็จ') }
-  })
+  }, { onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างกองสำเร็จ') } })
+
   const createSquad = useMutation(d => {
-    // Find the troop to get current squads and auto-assign next number
     const troop = camps.flatMap(c => c.troops || []).find(t => t.id === d.troopId)
     const currentSquads = troop?.squads || []
     const maxSquads = troop?.maxSquads || 4
-    
-    // Check squad limit
-    if (currentSquads.length >= maxSquads) {
-      throw new Error(`ไม่สามารถสร้างหมู่ได้ เนื่องจากกองนี้มีหมู่ครบ ${maxSquads} หมู่แล้ว`)
-    }
-    
-    // Auto-assign next squad number
+    if (currentSquads.length >= maxSquads) throw new Error(`กองนี้มีหมู่ครบ ${maxSquads} หมู่แล้ว`)
     const nextNumber = Math.max(...currentSquads.map(s => s.number || 0), 0) + 1
-    
     return api.post(`/camps/${d.campId}/troops/${d.troopId}/squads`, { name: d.name, number: nextNumber })
   }, {
     onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('สร้างหมู่สำเร็จ') },
-    onError: (error) => {
-      toast.error(error.message || 'ไม่สามารถสร้างหมู่ได้')
-    }
+    onError: (e) => toast.error(e.message || 'ไม่สามารถสร้างหมู่ได้')
   })
+
   const updateCamp = useMutation(d => api.patch(`/camps/${d.id}`, { name: d.name }), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); closeModal(); toast.success('แก้ไขชื่อค่ายสำเร็จ') }
   })
   const deleteCamp = useMutation(id => api.delete(`/camps/${id}`), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); toast.success('ลบค่ายและกอง/หมู่ทั้งหมดสำเร็จ') }
+    onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('camps'); toast.success('ลบค่ายสำเร็จ') }
   })
   const deleteSquad = useMutation(({ campId, squadId }) => api.delete(`/camps/${campId}/squads/${squadId}`), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบหมู่สำเร็จ') }
   })
   const deleteTroop = useMutation(({ campId, troopId }) => api.delete(`/camps/${campId}/troops/${troopId}`), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบกองและหมู่ทั้งหมดสำเร็จ') }
+    onSuccess: () => { qc.invalidateQueries('camps-full'); toast.success('ลบกองสำเร็จ') }
   })
   const updateTroop = useMutation(d => api.patch(`/camps/${d.campId}/troops/${d.id}`, { name: d.name }), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); closeModal(); toast.success('แก้ไขชื่อกองสำเร็จ') }
@@ -132,129 +157,6 @@ export default function AdminCamps() {
   const moveScout = useMutation(({ scoutId, squadId }) => api.patch(`/camps/scouts/${scoutId}/move`, { squadId }), {
     onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('all-scouts'); closeModal(); toast.success('ย้ายลูกเสือสำเร็จ') }
   })
-  const createScout = useMutation(({ squadId, ...data }) => api.post('/scouts', { ...data, squadId }), {
-    onSuccess: () => { qc.invalidateQueries('camps-full'); qc.invalidateQueries('all-scouts'); closeModal(); toast.success('เพิ่มลูกเสือสำเร็จ') }
-  })
-
-  function closeModal() { setModal(null) }
-  function handleSubmit() {
-    try {
-      const d = modal.formData
-      console.log('Submitting modal:', modal.type, d)
-      
-      if (modal.type === 'camp') {
-        if (d.id) updateCamp.mutate(d)
-        else createCamp.mutate({ name: d.name })
-      }
-      else if (modal.type === 'troop') {
-        if (d.id) updateTroop.mutate(d)
-        else createTroop.mutate(d)
-      }
-      else if (modal.type === 'squad') {
-        if (d.id) updateSquad.mutate(d)
-        else createSquad.mutate(d)
-      }
-      else if (modal.type === 'add-scout-to-squad') createScout.mutate({ squadId: modal.squadId, firstName: d.firstName, lastName: d.lastName, scoutCode: d.scoutCode })
-      else if (modal.type === 'add-existing-scout-to-squad') moveScout.mutate({ scoutId: d.scoutId, squadId: modal.squadId })
-      else if (modal.type === 'move') setModal(m => ({ ...m, type: 'move-confirm' }))
-      else {
-        console.error('Unknown modal type:', modal.type)
-      }
-    } catch (error) {
-      console.error('Error in handleSubmit:', error)
-      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่')
-    }
-  }
-  function confirmMove() {
-    moveScout.mutate({ scoutId: modal.scout.id, squadId: modal.formData.squadId || null })
-  }
-
-  console.log('Camps data:', camps)
-  console.log('All scouts data:', allScouts)
-
-  const allSquads = camps.flatMap(c => (
-    (c.troops || []).flatMap(t => (
-      (t.squads || []).map(s => ({ ...s, troopName: t.name, campName: c.name }))
-    ))
-  )).sort((a, b) => {
-    // Sort by camp name, then troop name, then squad number
-    if (a.campName !== b.campName) return a.campName.localeCompare(b.campName)
-    if (a.troopName !== b.troopName) return a.troopName.localeCompare(b.troopName)
-    return a.number - b.number
-  });
-  console.log('All squads:', allSquads)
-  const unassigned = allScouts.filter(s => !s.squadId)
-  const assigned = allScouts.filter(s => s.squadId)
-
-  // Add debugging
-  console.log('Camps data:', camps);
-  console.log('Scouts data:', allScouts);
-  console.log('Loading states:', { campsLoading, scoutsLoading });
-  console.log('Errors:', { campsError, scoutsError });
-
-  // ฟังก์ชันกรองลูกเสือตามการค้นหา
-  const filteredScouts = allScouts.filter(scout => {
-    const searchMatch = !searchTerm || 
-      `${scout.firstName} ${scout.lastName} ${scout.scoutCode || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const schoolMatch = selectedSchool === 'ALL' || scout.school === selectedSchool
-    
-    return searchMatch && schoolMatch
-  })
-
-  // ดึงรายชื่อโรงเรียนทั้งหมดสำหรับ dropdown
-  const allSchools = [...new Set(allScouts.map(s => s.school).filter(Boolean))].sort()
-
-  // แยกลูกเสือที่กรองแล้วตามสถานะหมู่
-  const filteredUnassigned = filteredScouts.filter(s => !s.squadId)
-  const filteredAssigned = filteredScouts.filter(s => s.squadId)
-
-  // ฟังก์ชันคำนวณสถิติสถานศึกษา
-  const getSchoolStats = (scouts) => {
-    const schoolCounts = {}
-    scouts.forEach(scout => {
-      if (scout.school) {
-        schoolCounts[scout.school] = (schoolCounts[scout.school] || 0) + 1
-      }
-    })
-    return Object.entries(schoolCounts).map(([school, count]) => ({ school, count }))
-      .sort((a, b) => b.count - a.count)
-  }
-
-  // ฟังก์ชันเปิด modal ดูรายละเอียด
-  const openDetailsModal = (type, data) => {
-    if (type === 'camp') {
-      const campScouts = (data.troops || []).flatMap(t => 
-        (t.squads || []).flatMap(s => 
-          allScouts.filter(scout => scout.squadId === s.id)
-        )
-      )
-      setModal({ 
-        type: 'view-camp-details', 
-        camp: data, 
-        scouts: campScouts,
-        schoolStats: getSchoolStats(campScouts)
-      })
-    } else if (type === 'troop') {
-      const troopScouts = (data.squads || []).flatMap(s => 
-        allScouts.filter(scout => scout.squadId === s.id)
-      )
-      setModal({ 
-        type: 'view-troop-details', 
-        troop: data, 
-        scouts: troopScouts,
-        schoolStats: getSchoolStats(troopScouts)
-      })
-    } else if (type === 'squad') {
-      const squadScouts = allScouts.filter(scout => scout.squadId === data.id)
-      setModal({ 
-        type: 'view-squad-details', 
-        squad: data, 
-        scouts: squadScouts,
-        schoolStats: getSchoolStats(squadScouts)
-      })
-    }
-  }
 
   const handleSetMaxSquads = useCallback((troop, campId) => {
     setMaxSquadsForm({ maxSquads: String(troop.maxSquads || 4) })
@@ -264,200 +166,257 @@ export default function AdminCamps() {
 
   const handleSaveMaxSquads = useCallback(() => {
     if (!troopMaxSquads.troopId || !troopMaxSquads.campId || !maxSquadsForm.maxSquads) return
-    
     const camp = camps.find(c => c.id === troopMaxSquads.campId)
     const troop = camp?.troops?.find(t => t.id === troopMaxSquads.troopId)
     const currentSquadCount = troop?.squads?.length || 0
-    const newMaxSquads = parseInt(maxSquadsForm.maxSquads)
-    
-    // ตรวจสอบว่าจำนวนหมู่สูงสุดใหม่ไม่น้อยกว่าจำนวนหมู่ปัจจุบัน
-    if (newMaxSquads < currentSquadCount) {
-      toast.error(`ไม่สามารถตั้งจำนวนหมู่สูงสุดน้อยกว่าจำนวนหมู่ปัจจุบันได้ (ปัจจุบันมี ${currentSquadCount} หมู่)`)
+    const newMax = parseInt(maxSquadsForm.maxSquads)
+    if (newMax < currentSquadCount) {
+      toast.error(`ไม่สามารถตั้งน้อยกว่าจำนวนหมู่ปัจจุบัน (${currentSquadCount} หมู่)`)
       return
     }
-    
-    api.patch(`/camps/${troopMaxSquads.campId}/troops/${troopMaxSquads.troopId}/max-squads`, { maxSquads: newMaxSquads })
-      .then(() => {
-        qc.invalidateQueries('camps-full')
-        setShowMaxSquadsModal(false)
-        setMaxSquadsForm({ maxSquads: '4' })
-        setTroopMaxSquads({})
-        toast.success('ตั้งค่าจำนวนหมู่สูงสุดสำเร็จ')
-      })
-      .catch(err => {
-        toast.error(err?.response?.data?.message || 'ตั้งค่าจำนวนหมู่สูงสุดไม่สำเร็จ กรุณาลองใหม่')
-      })
+    api.patch(`/camps/${troopMaxSquads.campId}/troops/${troopMaxSquads.troopId}/max-squads`, { maxSquads: newMax })
+      .then(() => { qc.invalidateQueries('camps-full'); setShowMaxSquadsModal(false); toast.success('ตั้งค่าสำเร็จ') })
+      .catch(err => toast.error(err?.response?.data?.message || 'ตั้งค่าไม่สำเร็จ'))
   }, [troopMaxSquads, maxSquadsForm, camps, qc])
 
+  // ── Loading / Error ──────────────────────────────────────────────────────────
+  if (campsError || scoutsError) return (
+    <div className="page flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+          <X size={24} className="text-red-500" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">เกิดข้อผิดพลาด</h3>
+        <p className="text-sm text-gray-400">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่</p>
+      </div>
+    </div>
+  )
+
+  if (campsLoading || scoutsLoading) return (
+    <div className="page flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-scout-400 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm text-gray-400">กำลังโหลดข้อมูล...</p>
+      </div>
+    </div>
+  )
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function closeModal() { setModal(null) }
+
+  function handleSubmit() {
+    const d = modal.formData
+    if (modal.type === 'camp') { if (d.id) updateCamp.mutate(d); else createCamp.mutate({ name: d.name }) }
+    else if (modal.type === 'troop') { if (d.id) updateTroop.mutate(d); else createTroop.mutate(d) }
+    else if (modal.type === 'squad') { if (d.id) updateSquad.mutate(d); else createSquad.mutate(d) }
+    else if (modal.type === 'add-scout-to-squad') {
+      const squadScouts = allScouts.filter(s => s.squadId === modal.squadId)
+      if (squadScouts.length >= 8) { toast.error('หมู่นี้มีลูกเสือครบ 8 คนแล้ว'); return }
+      if (!d.scoutId) { toast.error('กรุณาเลือกลูกเสือ'); return }
+      moveScout.mutate({ scoutId: d.scoutId, squadId: modal.squadId })
+    }
+    else if (modal.type === 'move') setModal(m => ({ ...m, type: 'move-confirm' }))
+  }
+
+  function confirmMove() { moveScout.mutate({ scoutId: modal.scout.id, squadId: modal.formData.squadId || null }) }
+
+  const allSquads = camps.flatMap(c =>
+    (c.troops || []).flatMap(t =>
+      (t.squads || []).map(s => ({ ...s, troopName: t.name, campName: c.name }))
+    )
+  ).sort((a, b) => {
+    if (a.campName !== b.campName) return a.campName.localeCompare(b.campName)
+    if (a.troopName !== b.troopName) return a.troopName.localeCompare(b.troopName)
+    return a.number - b.number
+  })
+
+  const filteredScouts = allScouts.filter(scout => {
+    const searchMatch = !searchTerm ||
+      `${scout.firstName} ${scout.lastName} ${scout.scoutCode || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
+    const schoolMatch = selectedSchool === 'ALL' || scout.school === selectedSchool
+    return searchMatch && schoolMatch
+  })
+
+  const allSchools = [...new Set(allScouts.map(s => s.school).filter(Boolean))].sort()
+
+  const getSchoolStats = (scouts) => {
+    const m = {}
+    scouts.forEach(s => { if (s.school) m[s.school] = (m[s.school] || 0) + 1 })
+    return Object.entries(m).map(([school, count]) => ({ school, count })).sort((a, b) => b.count - a.count)
+  }
+
+  const openDetailsModal = (type, data) => {
+    if (type === 'camp') {
+      const campScouts = (data.troops || []).flatMap(t => (t.squads || []).flatMap(s => allScouts.filter(sc => sc.squadId === s.id)))
+      setModal({ type: 'view-camp-details', camp: data, scouts: campScouts, schoolStats: getSchoolStats(campScouts) })
+    } else if (type === 'troop') {
+      const troopScouts = (data.squads || []).flatMap(s => allScouts.filter(sc => sc.squadId === s.id))
+      setModal({ type: 'view-troop-details', troop: data, scouts: troopScouts, schoolStats: getSchoolStats(troopScouts) })
+    } else if (type === 'squad') {
+      const squadScouts = allScouts.filter(sc => sc.squadId === data.id)
+      setModal({ type: 'view-squad-details', squad: data, scouts: squadScouts, schoolStats: getSchoolStats(squadScouts) })
+    }
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="page pb-24">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <style>{`
+        @keyframes dropIn { from { opacity: 0; transform: translateY(-6px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(24px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
+        .squad-card { transition: all 0.18s ease; }
+        .squad-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .troop-row { transition: background 0.15s ease; }
+        .camp-row { transition: background 0.15s ease; }
+      `}</style>
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-scout-900 dark:text-white">จัดการค่าย</h1>
           <p className="text-xs text-gray-400 mt-0.5">{camps.length} ค่ายย่อย · {allScouts.length} ลูกเสือ</p>
         </div>
-        <button onClick={() => setModal({ type: 'camp', formData: { name: '' } })} className="btn-primary text-sm px-4 py-2.5">
-          <Plus size={16} /> เพิ่มค่าย
+        <button onClick={() => setModal({ type: 'camp', formData: { name: '' } })} className="btn-primary text-sm px-4 py-2.5 flex items-center gap-1.5">
+          <Plus size={15} /> เพิ่มค่าย
         </button>
       </div>
 
-      {/* Camp list */}
-      <div className="space-y-3">
+      {/* ── Camp list ── */}
+      <div className="space-y-2.5">
         {camps.map(camp => {
-          const totalScouts = (camp.troops || []).flatMap(t => t.squads || []).reduce((sum, s) => sum + (s._count?.scouts || 0), 0)
+          const totalScouts = (camp.troops || []).flatMap(t => t.squads || []).reduce((s, sq) => s + (sq._count?.scouts || 0), 0)
           const isOpen = expandedCamp === camp.id
           return (
-            <div key={camp.id} className="card overflow-hidden p-0">
+            <div key={camp.id} className="rounded-2xl border border-gray-100 dark:border-scout-700 bg-white dark:bg-scout-800 overflow-visible shadow-sm">
               {/* Camp row */}
-              <div className="flex items-center gap-3 p-4">
-                <button onClick={() => setExpandedCamp(isOpen ? null : camp.id)} className="flex-1 flex items-center gap-3 text-left">
-                  <div className="w-9 h-9 rounded-xl bg-scout-700 flex items-center justify-center">
-                    <Tent size={17} className="text-scout-300" />
+              <div className="camp-row flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none rounded-2xl hover:bg-gray-50 dark:hover:bg-scout-700/40" onClick={() => setExpandedCamp(isOpen ? null : camp.id)}>
+                <div className="w-9 h-9 rounded-xl bg-scout-700 dark:bg-scout-900 flex items-center justify-center flex-shrink-0">
+                  <Tent size={16} className="text-scout-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-scout-900 dark:text-white truncate">{camp.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{(camp.troops || []).length} กอง · {totalScouts} คน</p>
+                </div>
+                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                  <IconBtn icon={<Eye size={14} />} onClick={() => openDetailsModal('camp', camp)} title="ดูรายละเอียด" variant="blue" />
+                  <IconBtn icon={<Plus size={14} />} onClick={() => setModal({ type: 'troop', formData: { name: '', campId: camp.id } })} title="เพิ่มกอง" variant="green" />
+                  <DropdownMenu items={[
+                    { label: 'แก้ไขชื่อค่าย', icon: <Pencil size={13} />, onClick: () => setModal({ type: 'camp', formData: { name: camp.name, id: camp.id } }) },
+                    { divider: true },
+                    { label: 'ลบค่าย', icon: <Trash2 size={13} />, danger: true, onClick: () => setConfirmDel({ label: `ค่าย "${camp.name}"`, onConfirm: () => deleteCamp.mutate(camp.id) }) }
+                  ]} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all cursor-pointer" onClick={() => setExpandedCamp(isOpen ? null : camp.id)}>
+                    <ChevronRight size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-scout-900 dark:text-white">{camp.name}</p>
-                    <p className="text-xs text-gray-400">{(camp.troops || []).length} กอง · {totalScouts} คน</p>
-                  </div>
-                </button>
-                <button onClick={() => openDetailsModal('camp', camp)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
-                  <Eye size={15} />
-                </button>
-                <button onClick={() => setModal({ type: 'camp', formData: { name: camp.name, id: camp.id } })}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">
-                  <Settings size={15} />
-                </button>
-                <button onClick={() => setConfirmDel({ label: `ค่าย "${camp.name}"`, onConfirm: () => deleteCamp.mutate(camp.id) })}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                  <Trash2 size={14} />
-                </button>
-                <button onClick={() => setModal({ type: 'troop', formData: { name: '', campId: camp.id } })}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                  title="เพิ่มกอง">
-                  <Plus size={14} />
-                </button>
-                <button onClick={() => setExpandedCamp(isOpen ? null : camp.id)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
-                  <ChevronRight size={16} className="transition-transform duration-200"
-                    style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
-                </button>
+                </div>
               </div>
 
               {/* Troops */}
               {isOpen && (
-                <div className="border-t border-gray-100 dark:border-scout-800">
+                <div className="border-t border-gray-100 dark:border-scout-700">
                   {(camp.troops || []).length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-4">ยังไม่มีกอง — กด + เพื่อเพิ่มกอง</p>
+                    <div className="flex flex-col items-center justify-center py-8 gap-2">
+                      <Flag size={20} className="text-gray-300" />
+                      <p className="text-xs text-gray-400">ยังไม่มีกอง — กด + เพื่อเพิ่มกอง</p>
+                    </div>
                   ) : (camp.troops || []).map(troop => {
                     const troopOpen = expandedTroop === troop.id
+                    const squadCount = (troop.squads || []).length
+                    const maxSquads = troop.maxSquads || 4
                     return (
-                      <div key={troop.id} className="border-b border-gray-100 dark:border-scout-800 last:border-0">
-                        <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-scout-800/50">
-                          <button onClick={() => setExpandedTroop(troopOpen ? null : troop.id)} className="flex-1 flex items-center gap-2.5 text-left">
-                            <div className="w-7 h-7 rounded-lg bg-scout-200 dark:bg-scout-700 flex items-center justify-center">
-                              <Flag size={13} className="text-scout-600 dark:text-scout-300" />
+                      <div key={troop.id} className="border-b border-gray-50 dark:border-scout-700/60 last:border-0">
+                        {/* Troop row */}
+                        <div className="troop-row flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-scout-700/30" onClick={() => setExpandedTroop(troopOpen ? null : troop.id)}>
+                          <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-scout-700 flex items-center justify-center flex-shrink-0">
+                            <Flag size={12} className="text-gray-500 dark:text-scout-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-scout-900 dark:text-white truncate">{troop.name}</p>
+                            <p className="text-xs text-gray-400">{squadCount}/{maxSquads} หมู่</p>
+                          </div>
+                          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                            <IconBtn icon={<Eye size={13} />} onClick={() => openDetailsModal('troop', troop)} title="ดูรายละเอียด" variant="blue" size={7} />
+                            <IconBtn icon={<Plus size={13} />} onClick={() => setModal({ type: 'squad', formData: { name: '', troopId: troop.id, campId: camp.id } })} title="เพิ่มหมู่" variant="green" size={7} />
+                            <DropdownMenu items={[
+                              { label: 'แก้ไขชื่อกอง', icon: <Pencil size={13} />, onClick: () => setModal({ type: 'troop', formData: { name: troop.name, id: troop.id, campId: camp.id } }) },
+                              { label: 'ตั้งค่าหมู่สูงสุด', icon: <Hash size={13} />, onClick: () => handleSetMaxSquads(troop, camp.id) },
+                              { divider: true },
+                              { label: 'ลบกอง', icon: <Trash2 size={13} />, danger: true, onClick: () => setConfirmDel({ label: `กอง "${troop.name}"`, onConfirm: () => deleteTroop.mutate({ campId: camp.id, troopId: troop.id }) }) }
+                            ]} />
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-600 transition-all cursor-pointer" onClick={() => setExpandedTroop(troopOpen ? null : troop.id)}>
+                              <ChevronRight size={13} className={`transition-transform duration-200 ${troopOpen ? 'rotate-90' : ''}`} />
                             </div>
-                            <div>
-                              <p className="text-sm font-semibold text-scout-900 dark:text-white">{troop.name}</p>
-                              <p className="text-xs text-gray-400">{(troop.squads || []).length}/{troop.maxSquads || 4} หมู่</p>
-                            </div>
-                          </button>
-                          <button onClick={() => openDetailsModal('troop', troop)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
-                            <Eye size={13} />
-                          </button>
-                          <button onClick={() => handleSetMaxSquads(troop, camp.id)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
-                            title="ตั้งค่าจำนวนหมู่สูงสุด">
-                            <Edit size={12} />
-                          </button>
-                          <button onClick={() => setModal({ type: 'troop', formData: { name: troop.name, id: troop.id, campId: camp.id } })}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">
-                            <Settings size={13} />
-                          </button>
-                          <button onClick={() => setConfirmDel({ label: `กอง "${troop.name}"`, onConfirm: () => deleteTroop.mutate({ campId: camp.id, troopId: troop.id }) })}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                            <Trash2 size={13} />
-                          </button>
-                          <button onClick={() => setModal({ type: 'squad', formData: { name: '', troopId: troop.id } })}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                            title="เพิ่มหมู่">
-                            <Plus size={13} />
-                          </button>
-                          <button onClick={() => setExpandedTroop(troopOpen ? null : troop.id)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
-                            <ChevronRight size={13} className="transition-transform duration-200"
-                              style={{ transform: troopOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
-                          </button>
+                          </div>
                         </div>
+
                         {/* Squads */}
                         {troopOpen && (
-                          <div className="px-4 py-2 space-y-2">
+                          <div className="px-4 py-3 space-y-2 bg-gray-50/50 dark:bg-scout-900/20">
                             {(troop.squads || []).length === 0 ? (
-                              <p className="text-xs text-gray-400 text-center py-2">ยังไม่มีหมู่</p>
+                              <div className="flex flex-col items-center justify-center py-6 gap-2">
+                                <Shield size={18} className="text-gray-300" />
+                                <p className="text-xs text-gray-400">ยังไม่มีหมู่</p>
+                              </div>
                             ) : (troop.squads || []).sort((a, b) => a.number - b.number).map(squad => {
                               const squadScouts = allScouts.filter(s => s.squadId === squad.id)
-                              const squadOpen = expandedSquad === squad.id
+                              const sqOpen = expandedSquad === squad.id
+                              const isFull = squadScouts.length >= 8
                               return (
-                                <div key={squad.id} className="rounded-xl border border-gray-200 dark:border-scout-700 overflow-hidden">
-                                  <div className="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-scout-900">
-                                    <button onClick={() => setExpandedSquad(squadOpen ? null : squad.id)} className="flex-1 flex items-center gap-2 text-left">
-                                      <div className="w-6 h-6 rounded-md bg-scout-100 dark:bg-scout-700 flex items-center justify-center">
-                                        <Shield size={11} className="text-scout-600 dark:text-scout-300" />
+                                <div key={squad.id} className="squad-card rounded-xl border border-gray-200 dark:border-scout-700 overflow-hidden bg-white dark:bg-scout-800 cursor-pointer" onClick={() => setExpandedSquad(sqOpen ? null : squad.id)}>
+                                  <div className="flex items-center gap-3 px-3 py-2.5">
+                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isFull ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-sm font-semibold text-scout-900 dark:text-white">{squad.name}</p>
+                                        {isFull && <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">เต็ม</span>}
                                       </div>
-                                      <p className="text-sm font-medium text-scout-900 dark:text-white">{squad.name}</p>
-                                      <span className="text-xs bg-gray-100 dark:bg-scout-800 text-gray-500 dark:text-scout-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <Users size={10} /> {squadScouts.length}
-                                      </span>
-                                    </button>
-                                    <button onClick={() => openDetailsModal('squad', squad)}
-                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
-                                      <Eye size={11} />
-                                    </button>
-                                    <button onClick={() => setModal({ type: 'squad', formData: { name: squad.name, id: squad.id, troopId: troop.id } })}
-                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">
-                                      <Settings size={11} />
-                                    </button>
-                                    <button onClick={() => setConfirmDel({ label: `หมู่ "${squad.name}"`, onConfirm: () => deleteSquad.mutate({ campId: camp.id, squadId: squad.id }) })}
-                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                                      <Trash2 size={11} />
-                                    </button>
-                                    <button onClick={() => setExpandedSquad(squadOpen ? null : squad.id)}
-                                      className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-scout-700 transition-all">
-                                      <ChevronRight size={12} className="transition-transform duration-200"
-                                        style={{ transform: squadOpen ? 'rotate(90deg)' : 'rotate(0)' }} />
-                                    </button>
+                                      <CapacityBar current={squadScouts.length} max={8} />
+                                    </div>
+                                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                      <button onClick={() => openDetailsModal('squad', squad)} className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"><Eye size={11} /></button>
+                                      <button onClick={() => setModal({ type: 'squad', formData: { name: squad.name, id: squad.id, troopId: troop.id, campId: camp.id } })} className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"><Pencil size={11} /></button>
+                                      <button onClick={() => setConfirmDel({ label: `หมู่ "${squad.name}"`, onConfirm: () => deleteSquad.mutate({ campId: camp.id, squadId: squad.id }) })} className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"><Trash2 size={11} /></button>
+                                      <ChevronRight size={12} className={`text-gray-400 transition-transform duration-200 ml-1 ${sqOpen ? 'rotate-90' : ''}`} />
+                                    </div>
                                   </div>
 
-                                  {squadOpen && (
-                                    <div className="border-t border-gray-100 dark:border-scout-700">
-                                      {/* ปุ่มเพิ่มลูกเสือ - แสดงเสมอ */}
-                                      <div className="text-center py-4 border-b border-gray-100 dark:border-scout-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
-                                        <button 
-                                          onClick={() => setModal({ type: 'add-existing-scout-to-squad', squadId: squad.id, squadName: squad.name, formData: { scoutId: '' } })}
-                                          className="btn-primary text-xs px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 mx-auto">
-                                          <Plus size={13} className="animate-pulse" />
-                                          <span className="font-medium">เพิ่มลูกเสือ</span>
-                                        </button>
+                                  {sqOpen && (
+                                    <div className="border-t border-gray-100 dark:border-scout-700" onClick={e => e.stopPropagation()}>
+                                      <div className="flex flex-col items-center justify-center px-3 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 border-b border-gray-100 dark:border-scout-700">
+                                        {isFull ? (
+                                          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                            <CheckCircle2 size={14} />
+                                            <span className="text-xs font-medium">หมู่นี้มีลูกเสือครบ 8 คนแล้ว</span>
+                                          </div>
+                                        ) : (
+                                          <button onClick={() => setModal({ type: 'add-scout-to-squad', squadId: squad.id, squadName: squad.name, formData: { scoutId: '' } })} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all">
+                                            <UserPlus size={12} /> เพิ่มลูกเสือ ({8 - squadScouts.length} ที่ว่าง)
+                                          </button>
+                                        )}
                                       </div>
-                                      
-                                      {/* รายชื่อลูกเสือ */}
-                                      <div className="divide-y divide-gray-100 dark:divide-scout-700/50">
+                                      <div className="divide-y divide-gray-50 dark:divide-scout-700/30">
                                         {squadScouts.length === 0 ? (
-                                          <div className="text-center py-3">
-                                            <p className="text-xs text-gray-400">ยังไม่มีลูกเสือ</p>
+                                          <div className="flex flex-col items-center justify-center py-5 gap-1.5">
+                                            <Users size={16} className="text-gray-300" />
+                                            <p className="text-xs text-gray-400">ยังไม่มีลูกเสือในหมู่นี้</p>
                                           </div>
                                         ) : squadScouts.map(s => (
-                                          <div key={s.id} className="flex items-center gap-2 px-3 py-2">
-                                            <div className="w-6 h-6 rounded-full bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-xs font-bold text-scout-700 dark:text-scout-300">
+                                          <div key={s.id} className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-scout-700/20 transition-colors group">
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${s.gender === 'ชาย' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : s.gender === 'หญิง' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-400' : 'bg-scout-100 text-scout-700 dark:bg-scout-700 dark:text-scout-300'}`}>
                                               {s.firstName?.[0]}
                                             </div>
-                                            <p className="flex-1 text-xs text-gray-700 dark:text-scout-200">{s.firstName} {s.lastName}</p>
-                                            <button onClick={() => setModal({ type: 'move', scout: s, formData: { squadId: s.squadId || '' } })}
-                                              className="flex items-center gap-1.5 text-xs text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-medium">
-                                              <ArrowRight size={11} />
-                                              <span>ย้าย</span>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-xs font-medium text-scout-900 dark:text-white truncate">{s.firstName} {s.lastName}</p>
+                                              <p className="text-xs text-gray-400 truncate">{s.school || '-'}</p>
+                                            </div>
+                                            {s.gender && (
+                                              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${s.gender === 'ชาย' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400'}`}>
+                                                {s.gender}
+                                              </span>
+                                            )}
+                                            <button onClick={() => setModal({ type: 'move', scout: s, formData: { squadId: s.squadId || '' } })} className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-white bg-gradient-to-r from-scout-500 to-scout-600 px-2 py-1 rounded-lg font-medium transition-all">
+                                              <ArrowRight size={10} /> ย้าย
                                             </button>
                                           </div>
                                         ))}
@@ -477,302 +436,235 @@ export default function AdminCamps() {
             </div>
           )
         })}
+
+        {camps.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-scout-50 dark:bg-scout-900/30 flex items-center justify-center">
+              <Tent size={28} className="text-scout-400" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-white">ยังไม่มีค่าย</p>
+            <p className="text-xs text-gray-400">กดปุ่ม "เพิ่มค่าย" เพื่อเริ่มต้น</p>
+          </div>
+        )}
       </div>
 
-      {/* ลูกเสือทั้งหมด */}
-      <div className="mt-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:gap-4">
-          <p className="text-sm font-semibold text-scout-800 dark:text-scout-200 whitespace-nowrap min-w-0">
-            📋 รายชื่อลูกเสือทั้งหมด ({filteredScouts.length} คน)
+      {/* ── Scout list ── */}
+      <div className="mt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <p className="text-sm font-semibold text-scout-800 dark:text-scout-200">
+            รายชื่อลูกเสือทั้งหมด <span className="ml-2 text-xs font-normal text-gray-400">({filteredScouts.length} คน)</span>
           </p>
-          
-          {/* ช่องค้นหาและ Dropdown โรงเรียน */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อ, รหัส..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="input pl-9 pr-4 text-sm w-full sm:w-48"
-              />
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="flex gap-2">
+            <div className="relative">
+              <input type="text" placeholder="ค้นหาชื่อ, รหัส..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input pl-9 pr-4 text-sm w-48" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
-            
-            {/* Dropdown โรงเรียน */}
-            <div className="relative flex-1 sm:flex-initial">
-              <select 
-                value={selectedSchool}
-                onChange={e => setSelectedSchool(e.target.value)}
-                className="input pl-9 pr-8 text-sm appearance-none cursor-pointer bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 w-full"
-              >
+            <div className="relative">
+              <select value={selectedSchool} onChange={e => setSelectedSchool(e.target.value)} className="input pl-9 pr-8 text-sm appearance-none cursor-pointer">
                 <option value="ALL">โรงเรียนทั้งหมด</option>
-                {allSchools.map(school => (
-                  <option key={school} value={school}>{school}</option>
-                ))}
+                {allSchools.map(school => <option key={school} value={school}>{school}</option>)}
               </select>
-              <School size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400" />
-              <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 rotate-90" />
+              <School size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
           </div>
         </div>
-        
-        {/* รายชื่อลูกเสือทั้งหมด (รวมกัน) */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {filteredScouts.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
-                <Search size={20} className="text-gray-400" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลลูกเสือ'}
-              </p>
+              <p className="text-sm text-gray-500">{searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลลูกเสือ'}</p>
             </div>
-          ) : (
-            filteredScouts.map(s => (
-              <div key={s.id} className="card flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  s.squadId 
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    : 'bg-scout-100 dark:bg-scout-700 text-scout-700 dark:text-scout-300'
-                }`}>
-                  {s.firstName?.[0]}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-scout-900 dark:text-white">{s.firstName} {s.lastName}</p>
-                  <p className="text-xs text-gray-400">{s.scoutCode}</p>
-                  {s.school && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{s.school}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {s.squadId ? (
-                    <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full">
-                      มีหมู่
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
-                      ไม่มีหมู่
-                    </span>
-                  )}
-                  <button onClick={() => setModal({ type: 'move', scout: s, formData: { squadId: s.squadId || '' } })}
-                    className="btn-primary text-xs px-3 py-1.5">
-                    <ArrowRight size={13} /> ย้ายหมู่
-                  </button>
-                </div>
+          ) : filteredScouts.map(s => (
+            <div key={s.id} className="card flex items-center gap-3 group hover:border-scout-300 dark:hover:border-scout-500 transition-all cursor-pointer">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${s.gender === 'ชาย' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : s.gender === 'หญิง' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-400' : 'bg-scout-100 text-scout-700 dark:bg-scout-700 dark:text-scout-300'}`}>
+                {s.firstName?.[0]}
               </div>
-            ))
-          )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-scout-900 dark:text-white truncate">{s.firstName} {s.lastName}</p>
+                <p className="text-xs text-gray-400">{s.scoutCode}</p>
+                {s.school && <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 truncate">{s.school}</p>}
+              </div>
+              <div className="flex items-center gap-2">
+                {s.gender && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.gender === 'ชาย' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'bg-pink-100 text-pink-600 dark:bg-pink-900/30'}`}>
+                    {s.gender}
+                  </span>
+                )}
+                <span className={`text-xs px-2 py-1 rounded-full ${s.squadId ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'}`}>
+                  {s.squadId ? 'มีหมู่' : 'ไม่มีหมู่'}
+                </span>
+                <button onClick={() => setModal({ type: 'move', scout: s, formData: { squadId: s.squadId || '' } })} className="opacity-0 group-hover:opacity-100 btn-primary text-xs px-3 py-1.5 flex items-center gap-1 transition-all">
+                  <ArrowRight size={12} /> ย้ายหมู่
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Modal */}
+      {/* ── Modal ── */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease' }}
-          onClick={e => { if (e.target === e.currentTarget) closeModal() }}>
-          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-sm shadow-2xl"
-            style={{ animation: 'slideUp 0.25s ease' }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-scout-700">
-              <h3 className="font-semibold text-scout-900 dark:text-white text-lg">
-                {modal.type === 'camp' ? 'เพิ่มค่ายย่อย'
-                  : modal.type === 'add-scout-to-squad' ? `เพิ่มลูกเสือใน${modal.squadName}`
-                  : modal.type === 'add-existing-scout-to-squad' ? `เพิ่มลูกเสือใน${modal.squadName}`
-                  : modal.type === 'view-camp-details' ? `รายละเอียดค่าย "${modal.camp.name}"`
-                  : modal.type === 'view-troop-details' ? `รายละเอียดกอง "${modal.troop.name}"`
-                  : modal.type === 'view-squad-details' ? `รายละเอียดหมู่ "${modal.squad.name}"`
-                  : modal.type === 'squad' ? 'เพิ่มหมู่'
-                  : `เพิ่มกอง`}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.55)', animation: 'fadeIn 0.15s ease' }} onClick={e => { if (e.target === e.currentTarget) closeModal() }}>
+          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-sm shadow-2xl" style={{ animation: 'slideUp 0.2s ease' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-scout-700">
+              <h3 className="font-semibold text-scout-900 dark:text-white">
+                {modal.type === 'camp' ? (modal.formData?.id ? 'แก้ไขค่าย' : 'เพิ่มค่ายย่อย')
+                  : modal.type === 'troop' ? (modal.formData?.id ? 'แก้ไขกอง' : 'เพิ่มกอง')
+                  : modal.type === 'squad' ? (modal.formData?.id ? 'แก้ไขหมู่' : 'เพิ่มหมู่')
+                  : modal.type === 'add-scout-to-squad' ? `เพิ่มลูกเสือใน ${modal.squadName}`
+                  : modal.type === 'view-camp-details' ? `ค่าย "${modal.camp?.name}"`
+                  : modal.type === 'view-troop-details' ? `กอง "${modal.troop?.name}"`
+                  : modal.type === 'view-squad-details' ? `หมู่ "${modal.squad?.name}"`
+                  : modal.type === 'move' || modal.type === 'move-confirm' ? 'ย้ายหมู่' : ''}
               </h3>
-              <button onClick={closeModal} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"><X size={20} /></button>
+              <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-scout-700 transition-colors">
+                <X size={18} />
+              </button>
             </div>
+
             <div className="px-5 py-4 space-y-3">
               {modal.type === 'move-confirm' ? (
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-2 py-2">
                   <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto">
-                    <ArrowRight size={24} className="text-amber-500" />
+                    <ArrowRight size={22} className="text-amber-500" />
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-scout-300">
-                    ย้าย <span className="font-semibold text-scout-900 dark:text-white">"{modal.scout?.firstName} {modal.scout?.lastName}"</span>
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-scout-300">
-                    ไปยัง <span className="font-semibold text-scout-900 dark:text-white">
-                      {modal.formData.squadId
-                        ? allSquads.find(s => s.id === modal.formData.squadId)?.name || 'หมู่ที่เลือก'
-                        : 'ไม่มีหมู่ (ลอยอิสระ)'}
-                    </span>
-                  </p>
-                  <p className="text-xs text-gray-400">ยืนยันการย้ายหรือไม่?</p>
+                  <p className="text-sm text-gray-600 dark:text-scout-300">ย้าย <span className="font-semibold text-scout-900 dark:text-white">"{modal.scout?.firstName} {modal.scout?.lastName}"</span></p>
+                  <p className="text-sm text-gray-600 dark:text-scout-300">ไปยัง <span className="font-semibold text-scout-900 dark:text-white">{modal.formData.squadId ? allSquads.find(s => s.id === modal.formData.squadId)?.name || 'หมู่ที่เลือก' : 'ไม่มีหมู่'}</span></p>
                 </div>
-              ) : modal.type === 'move' ? (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <select className="input w-full pr-10 appearance-none cursor-pointer bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700 focus:border-green-500 focus:ring-green-500" value={modal.formData.squadId}
-                      onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, squadId: e.target.value } }))}>
-                      <option value="">เลือกหมู่ที่จะย้าย...</option>
-                      <option value="" className="text-amber-600 font-medium">ไม่มีหมู่ (ลอยอิสระ)</option>
-                      <optgroup label="เลือกหมู่:" className="text-green-600 font-semibold">
-                        {allSquads.map(s => (
-                          <option key={s.id} value={s.id} className="pl-6">
-                            {s.campName} &gt; {s.troopName} &gt; {s.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-green-600">
-                      <ChevronRight size={18} className="rotate-90" />
-                    </div>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-700">
-                    <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-2">
-                      <span className="text-lg">💡</span>
-                      <span>เลือกหมู่ปลายทางที่ต้องการย้ายลูกเสือไป</span>
-                    </p>
-                  </div>
-                </div>
-              ) : modal.type === 'add-existing-scout-to-squad' ? (
-                (() => {
-                  // หาสถานศึกษาของลูกเสือที่อยู่ในหมู่นี้แล้ว
-                  const squadScouts = allScouts.filter(s => s.squadId === modal.squadId)
-                  const squadSchool = squadScouts.length > 0 ? squadScouts[0].school : null
-                  
-                  // กรองลูกเสือที่ยังไม่มีหมู่ และมาจากสถานศึกษาเดียวกัน (ถ้ามีคนอยู่แล้ว)
-                  const availableScouts = squadSchool 
-                    ? allScouts.filter(s => !s.squadId && s.school === squadSchool)
-                    : allScouts.filter(s => !s.squadId)
-                  
-                  return (
-                    <div className="space-y-3">
-                      <select className="input" value={modal.formData.scoutId} autoFocus
-                        onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, scoutId: e.target.value } }))}>
-                        <option value="">เลือกลูกเสือ...</option>
-                        {availableScouts.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.firstName} {s.lastName} ({s.scoutCode}) - {s.school || 'ไม่ระบุสถานศึกษา'}
-                          </option>
-                        ))}
-                      </select>
-                      {squadSchool ? (
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-700">
-                          <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-2">
-                            <span className="text-lg">✅</span>
-                            <span>แสดงเฉพาะลูกเสือจาก "{squadSchool}" (สถานศึกษาเดียวกับหมู่นี้)</span>
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
-                          <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                            <span className="text-lg">ℹ️</span>
-                            <span>หมู่นี้ยังว่าง - เลือกลูกเสือคนแรกได้จากใดก็ได้</span>
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()
-              ) : modal.type === 'view-camp-details' || modal.type === 'view-troop-details' || modal.type === 'view-squad-details' ? (
-                <div className="space-y-4">
-                  {/* สถิติทั่วไป */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Users size={16} className="text-blue-600 dark:text-blue-400" />
-                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">ข้อมูลทั่วไป</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400">จำนวนลูกเสือ</p>
-                        <p className="font-bold text-scout-900 dark:text-white">{modal.scouts.length} คน</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400">สถานศึกษา</p>
-                        <p className="font-bold text-scout-900 dark:text-white">{modal.schoolStats.length} แห่ง</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* สถิติสถานศึกษา */}
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <School size={16} className="text-green-600 dark:text-green-400" />
-                      <p className="text-sm font-semibold text-green-700 dark:text-green-300">สถิติสถานศึกษา</p>
-                    </div>
-                    {modal.schoolStats.length === 0 ? (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">ไม่มีข้อมูลสถานศึกษา</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {modal.schoolStats.map((stat, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <p className="text-xs text-gray-700 dark:text-gray-300">{stat.school}</p>
-                            </div>
-                            <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                              {stat.count} คน
-                            </span>
-                          </div>
-                        ))}
-                        {modal.schoolStats.length > 1 && (
-                          <div className="pt-2 mt-2 border-t border-green-200 dark:border-green-800">
-                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                              <MapPin size={12} />
-                              หมวดเดียวกันต้องมาจากสถานศึกษาเดียวกัน
-                            </p>
-                          </div>
-                        )}
+              ) : modal.type === 'move' ? (() => {
+                // ── กรองหมู่ตามเพศ + โรงเรียน ──
+                const scoutGender = modal.scout?.gender
+                const scoutSchool = modal.scout?.school
+                const filteredSquads = allSquads.filter(sq => {
+                  const squadMembers = allScouts.filter(s => s.squadId === sq.id)
+                  if (squadMembers.length === 0) return true // หมู่ว่าง รับได้ทุกคน
+                  const squadGender = squadMembers[0]?.gender
+                  const squadSchool = squadMembers[0]?.school
+                  const genderMatch = !scoutGender || !squadGender || squadGender === scoutGender
+                  const schoolMatch = !scoutSchool || !squadSchool || squadSchool === scoutSchool
+                  return genderMatch && schoolMatch
+                })
+                return (
+                  <div className="space-y-2">
+                    {(scoutGender || scoutSchool) && (
+                      <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                        <AlertCircle size={13} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          แสดงเฉพาะหมู่ที่ตรงเงื่อนไข
+                          {scoutGender && <span> · เพศ<span className="font-semibold">{scoutGender}</span></span>}
+                          {scoutSchool && <span> · โรงเรียน<span className="font-semibold">{scoutSchool}</span></span>}
+                          {' '}หรือหมู่ที่ยังว่างอยู่
+                        </p>
                       </div>
                     )}
+                    <select
+                      className="input w-full"
+                      value={modal.formData.squadId}
+                      onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, squadId: e.target.value } }))}
+                    >
+                      <option value="">ไม่มีหมู่ (ลอยอิสระ)</option>
+                      {filteredSquads.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.campName} &gt; {s.troopName} &gt; {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {filteredSquads.length === 0 && (
+                      <p className="text-xs text-center text-amber-500 py-1">
+                        ไม่มีหมู่ที่ตรงเงื่อนไข{scoutGender ? `เพศ${scoutGender}` : ''}{scoutSchool ? ` · ${scoutSchool}` : ''}
+                      </p>
+                    )}
                   </div>
+                )
+              })()
 
-                  {/* รายชื่อลูกเสือ */}
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Shield size={16} className="text-gray-600 dark:text-gray-400" />
-                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">รายชื่อลูกเสือ ({modal.scouts.length})</p>
+              : modal.type === 'add-scout-to-squad' ? (() => {
+                const squadScouts = allScouts.filter(s => s.squadId === modal.squadId)
+                const isFull = squadScouts.length >= 8
+                const squadSchool = squadScouts[0]?.school || null
+                const squadGender = squadScouts[0]?.gender || null
+                const available = allScouts.filter(s => {
+                  if (s.squadId) return false
+                  if (squadSchool && s.school !== squadSchool) return false
+                  if (squadGender && s.gender !== squadGender) return false
+                  return true
+                })
+                if (isFull) return (
+                  <div className="flex flex-col items-center justify-center py-4 gap-2">
+                    <CheckCircle2 size={24} className="text-emerald-500" />
+                    <p className="text-sm font-semibold text-emerald-600">หมู่นี้มีลูกเสือครบ 8 คนแล้ว</p>
+                  </div>
+                )
+                return (
+                  <div className="space-y-2">
+                    {(squadSchool || squadGender) && (
+                      <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                        <AlertCircle size={13} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          แสดงเฉพาะลูกเสือที่ยังไม่มีหมู่{squadSchool && ` · โรงเรียน "${squadSchool}"`}{squadGender && ` · เพศ${squadGender}`}
+                        </p>
+                      </div>
+                    )}
+                    <select className="input w-full" value={modal.formData.scoutId} onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, scoutId: e.target.value } }))} autoFocus>
+                      <option value="">เลือกลูกเสือ...</option>
+                      {available.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.scoutCode})</option>)}
+                    </select>
+                    {available.length === 0 && <p className="text-xs text-center text-amber-500 py-1">ไม่มีลูกเสือที่ตรงเงื่อนไข</p>}
+                    <p className="text-xs text-gray-400 text-center">ที่ว่างในหมู่นี้: {8 - squadScouts.length} คน</p>
+                  </div>
+                )
+              })() : modal.type === 'view-camp-details' || modal.type === 'view-troop-details' || modal.type === 'view-squad-details' ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 p-3 text-center">
+                      <p className="text-xl font-bold text-blue-600">{modal.scouts.length}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">ลูกเสือ</p>
                     </div>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {modal.scouts.length === 0 ? (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">ยังไม่มีลูกเสือ</p>
-                      ) : (
-                        modal.scouts.map(scout => (
-                          <div key={scout.id} className="flex items-center gap-2 p-2 bg-white dark:bg-scout-900 rounded-lg">
-                            <div className="w-6 h-6 rounded-full bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-xs font-bold text-scout-700 dark:text-scout-300">
-                              {scout.firstName?.[0]}
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs font-medium text-scout-900 dark:text-white">{scout.firstName} {scout.lastName}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{scout.school || '-'}</p>
-                            </div>
-                            {scout.scoutCode && (
-                              <span className="text-xs font-mono text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                                {scout.scoutCode}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      )}
+                    <div className="rounded-xl bg-green-50 dark:bg-green-900/20 p-3 text-center">
+                      <p className="text-xl font-bold text-green-600">{modal.schoolStats.length}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">สถานศึกษา</p>
                     </div>
+                  </div>
+                  {modal.schoolStats.length > 0 && (
+                    <div className="space-y-1.5">
+                      {modal.schoolStats.map((stat, i) => (
+                        <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-scout-800">
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{stat.school}</p>
+                          <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">{stat.count} คน</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {modal.scouts.map(scout => (
+                      <div key={scout.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-scout-800">
+                        <div className="w-6 h-6 rounded-full bg-scout-100 dark:bg-scout-700 flex items-center justify-center text-xs font-bold text-scout-700 dark:text-scout-300">{scout.firstName?.[0]}</div>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-scout-900 dark:text-white">{scout.firstName} {scout.lastName}</p>
+                          <p className="text-xs text-gray-500">{scout.school || '-'}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
-                <>
-                  <input className="input" placeholder="ชื่อ" autoFocus value={modal.formData.name}
-                    onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, name: e.target.value } }))} />
-                  {modal.type !== 'camp' && modal.type !== 'troop' && modal.type !== 'squad' && (
-                    <input className="input" type="number" placeholder="หมายเลข (1, 2, 3...)" value={modal.formData.number}
-                      onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, number: e.target.value } }))} />
-                  )}
-                </>
+                <input className="input w-full" placeholder="ชื่อ" autoFocus value={modal.formData.name} onChange={e => setModal(m => ({ ...m, formData: { ...m.formData, name: e.target.value } }))} onKeyDown={e => { if (e.key === 'Enter' && modal.formData.name) handleSubmit() }} />
               )}
             </div>
+
             <div className="flex gap-2 px-5 pb-5">
               {modal.type === 'move-confirm' ? (
                 <>
-                  <button onClick={confirmMove} className="btn-primary flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">ยืนยัน ย้าย</button>
+                  <button onClick={confirmMove} className="btn-primary flex-1">ยืนยันย้าย</button>
                   <button onClick={() => setModal(m => ({ ...m, type: 'move' }))} className="btn-secondary flex-1">ย้อนกลับ</button>
                 </>
+              ) : modal.type === 'view-camp-details' || modal.type === 'view-troop-details' || modal.type === 'view-squad-details' ? (
+                <button onClick={closeModal} className="btn-secondary flex-1">ปิด</button>
+              ) : modal.type === 'add-scout-to-squad' && allScouts.filter(s => s.squadId === modal.squadId).length >= 8 ? (
+                <button onClick={closeModal} className="btn-secondary flex-1">ปิด</button>
               ) : (
                 <>
-                  <button onClick={handleSubmit} className="btn-primary flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">บันทึก</button>
+                  <button onClick={handleSubmit} disabled={modal.formData?.name === '' && modal.type !== 'add-scout-to-squad' && modal.type !== 'move'} className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed">บันทึก</button>
                   <button onClick={closeModal} className="btn-secondary flex-1">ยกเลิก</button>
                 </>
               )}
@@ -781,117 +673,48 @@ export default function AdminCamps() {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      {/* ── Confirm Delete ── */}
       {confirmDel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.15s ease' }}
-          onClick={e => { if (e.target === e.currentTarget) setConfirmDel(null) }}>
-          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-xs shadow-2xl text-center"
-            style={{ animation: 'slideUp 0.2s ease' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.55)', animation: 'fadeIn 0.15s ease' }} onClick={e => { if (e.target === e.currentTarget) setConfirmDel(null) }}>
+          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-xs shadow-2xl text-center" style={{ animation: 'slideUp 0.2s ease' }}>
             <div className="px-6 pt-6 pb-2">
               <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-3">
-                <Trash2 size={24} className="text-red-500" />
+                <Trash2 size={22} className="text-red-500" />
               </div>
               <p className="font-bold text-scout-900 dark:text-white text-lg">ลบข้อมูล?</p>
-              <p className="text-sm text-gray-500 dark:text-scout-400 mt-1">
-                ต้องการลบ <span className="font-semibold text-red-500">{confirmDel.label}</span> ใช่หรือไม่?
-              </p>
+              <p className="text-sm text-gray-500 dark:text-scout-400 mt-1">ต้องการลบ <span className="font-semibold text-red-500">{confirmDel.label}</span> ใช่หรือไม่?</p>
               <p className="text-xs text-gray-400 mt-1">
-                {confirmDel.label.includes('ค่าย') 
-                  ? '⚠️ การลบค่ายจะลบกองและหมู่ทั้งหมดในค่ายนี้ด้วย'
-                  : confirmDel.label.includes('กอง')
-                  ? '⚠️ การลบกองจะลบหมู่ทั้งหมดในกองนี้ด้วย'
-                  : 'ข้อมูลจะหายจาก database ทันที'}
+                {confirmDel.label.includes('ค่าย') ? '⚠️ จะลบกองและหมู่ทั้งหมดด้วย' : confirmDel.label.includes('กอง') ? '⚠️ จะลบหมู่ทั้งหมดในกองนี้ด้วย' : 'ข้อมูลจะหายถาวร'}
               </p>
             </div>
             <div className="flex gap-2 p-4">
-              <button onClick={() => { confirmDel.onConfirm(); setConfirmDel(null) }}
-                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white bg-red-500 hover:bg-red-600 transition-all">
-                ลบเลย
-              </button>
-              <button onClick={() => setConfirmDel(null)}
-                className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-scout-800 text-gray-600 dark:text-scout-300 hover:bg-gray-200 dark:hover:bg-scout-700 transition-all">
-                ยกเลิก
-              </button>
+              <button onClick={() => { confirmDel.onConfirm(); setConfirmDel(null) }} className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white bg-red-500 hover:bg-red-600 transition-all">ลบเลย</button>
+              <button onClick={() => setConfirmDel(null)} className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-scout-800 text-gray-600 dark:text-scout-300 hover:bg-gray-200 transition-all">ยกเลิก</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Max Squads Modal */}
+      {/* ── Max Squads Modal ── */}
       {showMaxSquadsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowMaxSquadsModal(false) }}>
-          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-md shadow-2xl"
-            style={{ animation: 'slideUp 0.25s ease' }}>
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-200 dark:border-scout-700">
-              <h3 className="font-semibold text-scout-900 dark:text-white text-lg">
-                ตั้งค่าจำนวนหมู่สูงสุด
-              </h3>
-              <button onClick={() => setShowMaxSquadsModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-scout-600 text-gray-400 transition-colors">
-                <X size={18} />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.55)', animation: 'fadeIn 0.15s ease' }} onClick={e => { if (e.target === e.currentTarget) setShowMaxSquadsModal(false) }}>
+          <div className="bg-white dark:bg-scout-900 rounded-2xl w-full max-w-sm shadow-2xl" style={{ animation: 'slideUp 0.2s ease' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-scout-700">
+              <h3 className="font-semibold text-scout-900 dark:text-white">ตั้งค่าหมู่สูงสุด</h3>
+              <button onClick={() => setShowMaxSquadsModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-scout-700 transition-colors"><X size={18} /></button>
             </div>
-            <div className="px-6 py-5">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    จำนวนหมู่สูงสุดต่อกอง
-                  </label>
-                  <input
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 bg-gray-50 dark:bg-scout-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-scout-400 focus:border-transparent transition text-sm"
-                    type="number"
-                    min="1"
-                    max="20"
-                    placeholder="กรอกจำนวนหมู่สูงสุด (เช่น 10)"
-                    value={maxSquadsForm.maxSquads}
-                    onChange={(e) => setMaxSquadsForm((f) => ({ ...f, maxSquads: e.target.value }))}
-                    autoFocus
-                  />
-                  <p className="text-xs text-gray-400 mt-2">
-                    กำหนดจำนวนหมู่สูงสุดที่สามารถสร้างได้ในกองนี้
-                  </p>
-                </div>
-              </div>
+            <div className="px-5 py-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">จำนวนหมู่สูงสุดต่อกอง</label>
+              <input className="input w-full" type="number" min="1" max="20" placeholder="เช่น 10" value={maxSquadsForm.maxSquads} onChange={e => setMaxSquadsForm(f => ({ ...f, maxSquads: e.target.value }))} autoFocus />
+              <p className="text-xs text-gray-400 mt-2">กำหนดจำนวนหมู่สูงสุดที่สามารถสร้างได้ในกองนี้</p>
             </div>
-            <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={handleSaveMaxSquads}
-                disabled={!maxSquadsForm.maxSquads}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-scout-600 hover:bg-scout-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold transition"
-              >
-                บันทึก
-              </button>
-              <button
-                onClick={() => setShowMaxSquadsModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-scout-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-scout-700 transition"
-              >
-                ยกเลิก
-              </button>
+            <div className="flex gap-2 px-5 pb-5">
+              <button onClick={handleSaveMaxSquads} disabled={!maxSquadsForm.maxSquads} className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed">บันทึก</button>
+              <button onClick={() => setShowMaxSquadsModal(false)} className="btn-secondary flex-1">ยกเลิก</button>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
-      `}</style>
     </div>
   )
-  } catch (error) {
-    console.error('AdminCamps component error:', error)
-    return (
-      <div className="page flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-            <X size={24} className="text-red-500" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">เกิดข้อผิดพลาด</h3>
-          <p className="text-sm text-gray-400">ไม่สามารถโหลดหน้าจัดการค่ายได้ กรุณาลองใหม่</p>
-        </div>
-      </div>
-    )
-  }
 }

@@ -12,11 +12,11 @@ router.use(authenticate)
 router.get('/my', requireRole('SCOUT'), async (req, res) => {
   const scout = await prisma.scout.findUnique({
     where: { userId: req.user.id },
-  include: {
-  squad: { include: { troop: { include: { camp: true } } } },
-  attendances: { include: { activity: true } },
-  user: { select: { prefix: true } }
-}
+    include: {
+      squad: { include: { troop: { include: { camp: true } } } },
+      attendances: { include: { activity: true } },
+      user: { select: { prefix: true } }
+    }
   })
   if (!scout) throw createError(404, 'ไม่พบข้อมูลลูกเสือ')
   res.json(scout)
@@ -34,14 +34,13 @@ router.get('/my/qr', requireRole('SCOUT'), async (req, res) => {
 router.get('/', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { campId, squadId, unassigned } = req.query
   const where = {}
-  if (req.user.role === 'CAMP_MANAGER') {
-    // Camp manager: only scouts in their camp
-    const squads = await prisma.squad.findMany({
-      where: { troop: { campId: req.user.campId } },
-      select: { id: true }
-    })
-    where.squadId = { in: squads.map(s => s.id) }
+
+  // กรองตาม campId (รองรับทั้ง ADMIN และ CAMP_MANAGER)
+  const targetCampId = req.user.role === 'CAMP_MANAGER' ? req.user.campId : campId
+  if (targetCampId) {
+    where.campId = targetCampId
   }
+
   if (squadId) where.squadId = squadId
   if (unassigned === 'true') where.squadId = null
 
@@ -66,7 +65,7 @@ router.get('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'TROOP_LEADER'), async (
   res.json(scout)
 })
 
-// PATCH /api/scouts/:id - แก้ไขข้อมูลส่วนตัว (Leader, Camp, Admin)
+// PATCH /api/scouts/:id - แก้ไขข้อมูลส่วนตัว
 router.patch('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'TROOP_LEADER'), async (req, res) => {
   const { firstName, lastName, nickname, birthDate, school, province, phone, email } = req.body
   const before = await prisma.scout.findUnique({ where: { id: req.params.id } })
@@ -74,20 +73,55 @@ router.patch('/:id', requireRole('ADMIN', 'CAMP_MANAGER', 'TROOP_LEADER'), async
 
   const updated = await prisma.scout.update({
     where: { id: req.params.id },
-    data: { firstName, lastName, nickname, birthDate: birthDate ? new Date(birthDate) : undefined, school, province, phone, email }
+    data: {
+      firstName,
+      lastName,
+      nickname,
+      birthDate: birthDate ? new Date(birthDate) : undefined,
+      school,
+      province,
+      phone,
+      email
+    }
   })
-  await logAudit({ userId: req.user.id, action: 'UPDATE_SCOUT_PROFILE', target: req.params.id, before, after: updated })
+  await logAudit({
+    userId: req.user.id,
+    action: 'UPDATE_SCOUT_PROFILE',
+    target: req.params.id,
+    before,
+    after: updated
+  })
   res.json(updated)
 })
 
-// POST /api/scouts - สร้างลูกเสือใหม่ (Camp, Admin)
+// POST /api/scouts - สร้างลูกเสือใหม่
 router.post('/', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
-  const { firstName, lastName, nickname, school, province, phone, email, squadId } = req.body
+  const { firstName, lastName, nickname, school, province, phone, email, squadId, campId } = req.body
+
+  // ถ้าเป็น CAMP_MANAGER ใช้ campId จาก token เลย
+  const targetCampId = req.user.role === 'CAMP_MANAGER' ? req.user.campId : campId
+
   const scoutCode = `SC${Date.now()}`
   const scout = await prisma.scout.create({
-    data: { scoutCode, firstName, lastName, nickname, school, province, phone, email, squadId: squadId || null }
+    data: {
+      scoutCode,
+      firstName,
+      lastName,
+      nickname,
+      school,
+      province,
+      phone,
+      email,
+      squadId: squadId || null,
+      campId: targetCampId || null
+    }
   })
-  await logAudit({ userId: req.user.id, action: 'CREATE_SCOUT', target: scout.id, after: scout })
+  await logAudit({
+    userId: req.user.id,
+    action: 'CREATE_SCOUT',
+    target: scout.id,
+    after: scout
+  })
   res.status(201).json(scout)
 })
 
@@ -95,11 +129,19 @@ router.post('/', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
 router.patch('/:id/move', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
   const { squadId } = req.body
   const before = await prisma.scout.findUnique({ where: { id: req.params.id } })
-  const updated = await prisma.scout.update({ where: { id: req.params.id }, data: { squadId } })
-  await logAudit({ userId: req.user.id, action: 'MOVE_SCOUT', target: req.params.id, before: { squadId: before.squadId }, after: { squadId } })
+  const updated = await prisma.scout.update({
+    where: { id: req.params.id },
+    data: { squadId }
+  })
+  await logAudit({
+    userId: req.user.id,
+    action: 'MOVE_SCOUT',
+    target: req.params.id,
+    before: { squadId: before.squadId },
+    after: { squadId }
+  })
   res.json(updated)
 })
-
 
 // DELETE /api/scouts/:id
 router.delete('/:id', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {

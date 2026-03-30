@@ -106,7 +106,7 @@ export default function LoginPage() {
               { user: 'camp_a',      pass: 'camp1234',   label: 'ผู้ดูแลค่าย' },
               { user: 'leader_1_1',  pass: 'leader1234', label: 'ผู้กำกับหมู่' },
               { user: 'staff_skill', pass: 'staff1234',  label: 'ผู้จัดกิจกรรม' },
-              { user: 'scout1',      pass: 'scout1234',  label: 'ลูกเสือ' },
+              { user: 'scout002',      pass: 'scout1234',  label: 'ลูกเสือ' },
             ].map(a => (
               <button key={a.user} type="button"
                 onClick={() => setForm({ username: a.user, password: a.pass })}

@@ -418,7 +418,8 @@ router.delete('/:campId', requireRole('ADMIN'), async (req, res) => {
   if (!camp) throw createError(404, 'ไม่พบค่าย')
 
 
-
+   await prisma.activityGroup.deleteMany({ where: { campId: req.params.campId } })
+   
   await prisma.schedule.deleteMany({ where: { campId: req.params.campId } })
 
   await prisma.squad.deleteMany({ where: { troop: { campId: req.params.campId } } })
@@ -692,6 +693,76 @@ router.post('/:campId/organize-troops', requireRole('ADMIN', 'CAMP_MANAGER'), as
       message: 'จัดกองไม่สำเร็จ กรุณาลองใหม่',
       error: error.message
     })
+  }
+})
+
+router.post('/:campId/organize-squads', requireRole('ADMIN', 'CAMP_MANAGER'), async (req, res) => {
+  const { newSquads } = req.body
+  const { campId } = req.params
+
+  try {
+    const createdSquads = []
+
+    const troops = await prisma.troop.findMany({
+      where: { campId },
+      include: { squads: true },
+      orderBy: { number: 'asc' }
+    })
+
+    for (const squadData of newSquads) {
+      // หา troop ที่ยังมีที่ว่าง
+      let availableTroop = troops.find(t => {
+        const max = t.maxSquads || 4
+        return t.squads.length < max
+      })
+
+      // ถ้าทุกกองเต็ม → สร้างกองใหม่อัตโนมัติ
+      if (!availableTroop) {
+        const nextTroopNumber = Math.max(...troops.map(t => t.number || 0), 0) + 1
+        availableTroop = await prisma.troop.create({
+          data: {
+            campId,
+            name: `กอง ${nextTroopNumber}`,
+            number: nextTroopNumber,
+             maxSquads: newSquads.length
+          }
+        })
+        availableTroop.squads = []
+        troops.push(availableTroop)
+      }
+
+      const nextNumber = Math.max(...availableTroop.squads.map(s => s.number || 0), 0) + 1
+
+      const squad = await prisma.squad.create({
+        data: {
+          name: `หมู่ ${nextNumber}`,
+          number: nextNumber,
+          troopId: availableTroop.id
+        }
+      })
+
+      if (squadData.scoutIds?.length > 0) {
+        await prisma.scout.updateMany({
+          where: { id: { in: squadData.scoutIds } },
+          data: { squadId: squad.id }
+        })
+      }
+
+      availableTroop.squads.push(squad)
+      createdSquads.push(squad)
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'ORGANIZE_SQUADS',
+      target: campId,
+      after: { createdSquads }
+    })
+
+    res.status(201).json({ squads: createdSquads })
+  } catch (error) {
+    console.error('Organize squads error:', error)
+    res.status(500).json({ message: 'จัดหมู่ไม่สำเร็จ', error: error.message })
   }
 })
 
