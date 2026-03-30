@@ -102,6 +102,8 @@ export default function CampStructure() {
   const [editSquadForm, setEditSquadForm] = useState({ name: '', number: '' })
   const [editingTroop, setEditingTroop] = useState(null)
   const [editingSquad, setEditingSquad] = useState(null)
+  const [moveTargets, setMoveTargets] = useState({})
+  
 
   // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: camp } = useQuery('camp-my', () => api.get('/camps/my'))
@@ -194,6 +196,7 @@ export default function CampStructure() {
 
   const handleAssignScout = useCallback((scoutId) => {
     const sel = document.getElementById(`squad-select-${scoutId}`)
+   
     if (!sel?.value) return toast.error('กรุณาเลือกหมู่ก่อน')
     assignScoutMutation.mutate({ scoutId, squadId: sel.value })
   }, [assignScoutMutation])
@@ -587,20 +590,88 @@ export default function CampStructure() {
                 <p className="text-sm text-gray-400">ไม่มีลูกเสือในหมู่นี้</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {squadScouts.map((scout) => (
-                  <div key={scout.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
-                    <div className="w-8 h-8 rounded-full bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center text-xs font-bold text-scout-600">{scout.firstName?.[0]}</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{scout.firstName} {scout.lastName}{scout.nickname && <span className="text-gray-400 font-normal ml-1">({scout.nickname})</span>}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${scout.gender === 'ชาย' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : scout.gender === 'หญิง' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/40 dark:text-pink-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400'}`}>{scout.gender || 'ไม่ระบุ'}</span>
-                        <p className={`text-xs ${scout.school ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'}`}>{scout.school || 'ไม่ระบุสถานศึกษา'}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+  {squadScouts.map((scout) => (
+    <div key={scout.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-scout-800/60 border border-gray-100 dark:border-scout-600">
+      <div className="w-8 h-8 rounded-full bg-scout-100 dark:bg-scout-900/40 flex items-center justify-center text-xs font-bold text-scout-600">
+        {scout.firstName?.[0]}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+          {scout.firstName} {scout.lastName}
+          {scout.nickname && <span className="text-gray-400 font-normal ml-1">({scout.nickname})</span>}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+            scout.gender === 'ชาย' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+            : scout.gender === 'หญิง' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/40 dark:text-pink-400'
+            : 'bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400'
+          }`}>{scout.gender || 'ไม่ระบุ'}</span>
+          <p className={`text-xs ${scout.school ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400'}`}>
+            {scout.school || 'ไม่ระบุสถานศึกษา'}
+          </p>
+        </div>
+      </div>
+
+      {/* ── ย้ายหมู่ ── */}
+      <select
+        className="text-xs border border-gray-200 dark:border-scout-600 rounded-lg px-2 py-1.5 bg-white dark:bg-scout-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-scout-400"
+        value={moveTargets[scout.id] || ''}
+        onChange={e => setMoveTargets(prev => ({ ...prev, [scout.id]: e.target.value }))}
+      >
+        <option value="">ย้ายไป...</option>
+        {allSquads
+         .filter(sq => {
+    // กรองหมู่ตัวเองออก
+    if (sq.id === viewingSquad?.id) return false
+
+    // ดึงข้อมูลสมาชิกในหมู่นั้น
+    const scoutsInSq = scouts?.filter(s => s.squadId === sq.id) || []
+
+    // หมู่ว่าง → รับได้เลย
+    if (scoutsInSq.length === 0) return true
+
+    // เช็คเพศ
+    if (scout.gender) {
+      const hasGender = scoutsInSq.filter(s => s.gender)
+      if (hasGender.length > 0 && hasGender[0].gender !== scout.gender) return false
+    }
+
+    // เช็คโรงเรียน
+    if (scout.school) {
+      const squadSchool = scoutsInSq.find(s => s.school)?.school
+      if (squadSchool && squadSchool !== scout.school) return false
+    }
+
+    return true
+  })
+  .map(sq => (
+    <option key={sq.id} value={sq.id}>
+      กอง {sq.troopNumber} · {sq.name}
+    </option>
+  ))
+}
+      </select>
+      <button
+        onClick={() => {
+          if (!moveTargets[scout.id]) return toast.error('กรุณาเลือกหมู่ก่อน')
+          assignScoutMutation.mutate(
+            { scoutId: scout.id, squadId: moveTargets[scout.id] },
+            { onSuccess: () => {
+                setMoveTargets(prev => ({ ...prev, [scout.id]: '' }))
+                qc.invalidateQueries(['squad-scouts', viewingSquad?.id])
+              }
+            }
+          )
+        }}
+        disabled={assignScoutMutation.isLoading || !moveTargets[scout.id]}
+        className="flex-shrink-0 px-2.5 py-1.5 rounded-lg bg-scout-600 hover:bg-scout-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-semibold transition"
+      >
+        ย้าย
+      </button>
+    </div>
+  ))}
+</div>
             )}
           </div>
           <div className="px-6 pb-6">

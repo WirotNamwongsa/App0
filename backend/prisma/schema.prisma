@@ -32,6 +32,8 @@ model Camp {
 
   scouts  Scout[] 
 
+  squads         Squad[]
+
   troops        Troop[]
 
   users         User[]
@@ -71,37 +73,23 @@ model Troop {
 
 
 model Squad {
-
   id              String   @id @default(uuid())
-
   name            String
-
   number          Int
-
   gender          String?
-
-  troopId         String
-
+  troopId         String?  // ← ต้องมี ? ตรงนี้ด้วย
+  campId          String?  // ← เพิ่มใหม่
   activityGroupId String?
-
   createdAt       DateTime @default(now())
-
   updatedAt       DateTime @updatedAt
 
-
-
-  troop           Troop    @relation(fields: [troopId], references: [id])
-
-  leaders         User[]   @relation("SquadLeaders")   // ✅ เปลี่ยนเป็น many-to-many
-
+  troop           Troop?   @relation(fields: [troopId], references: [id])
+  camp            Camp?    @relation(fields: [campId], references: [id])
+  leaders         User[]   @relation("SquadLeaders")
   scouts          Scout[]
-
   schedules       Schedule[]
-
   activityGroup   ActivityGroup? @relation("SquadActivityGroup", fields: [activityGroupId], references: [id])
-
 }
-
 
 
 model User {
